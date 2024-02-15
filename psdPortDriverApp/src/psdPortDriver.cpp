@@ -1,3 +1,7 @@
+#include <cmath>
+#include <endian.h>
+#include <netinet/in.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -275,7 +279,10 @@ int psdPortDriver::setup() {
     this->sendNEUNET(NEUNET_ADDR_TIMEMODE, timeMode32Bit, sizeof(timeMode32Bit), NULL, 0);
 
     // Send current time to device
-    // TODO: ...
+    psdTime32_t currentTime = epicsTimeToPSDTime32_t(epicsTime::getCurrent());
+    char currentTimeData[7] = {0};
+    memcpy(currentTimeData, &currentTime, sizeof(currentTime));
+    this->sendNEUNET(NEUNET_ADDR_DEVICETIME, currentTimeData, sizeof(currentTimeData), NULL, 0);
 
     // No idea what this does...
     const char evenMemoryReadMode[] = {0x00, 0x00};
@@ -392,6 +399,28 @@ asynStatus psdPortDriver::readInt32Array(asynUser *pasynUser, epicsInt32 *value,
     return status;
 }
 
+/* UTILITIES */
+
+epicsTime epicsTimeStampFromPSDTime32_t(psdTime32_t src) {
+    epicsTimeStamp refTS;
+    epicsTimeFromTime_t(&refTS, POSIX_TIME_AT_EPICS_EPOCH);
+    epicsTime ref = epicsTime(refTS);
+
+    double psdSeconds = (double)(src.s) + ((double)(src.ss) / 256.0);
+    return ref + psdSeconds;
+}
+
+psdTime32_t epicsTimeToPSDTime32_t(epicsTime src) {
+    epicsTimeStamp refTS;
+    epicsTimeFromTime_t(&refTS, POSIX_TIME_AT_EPICS_EPOCH);
+    epicsTime ref = epicsTime(refTS);
+    double psdSeconds = (src - ref);
+
+    uint64_t ssFull = std::round(psdSeconds * 256.0);
+    uint32_t s = ssFull >> 8;   // Upper 32 bits
+    uint8_t ss = ssFull & 0xFF; // Lower 8 bits
+    return (psdTime32_t){ .s = s, .ss = ss };
+}
 
 /* Configuration routine.  Called directly, or from the iocsh function below */
 

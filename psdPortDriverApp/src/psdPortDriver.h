@@ -1,6 +1,8 @@
 // Based off testAsynPortDriver.h
 
+#include <epicsTime.h>
 #include <osiSock.h>
+#include "tEndian.h"
 #include "asynPortDriver.h"
 
 /* These are the drvInfo strings that are used to identify the parameters.
@@ -56,3 +58,22 @@ private:
     int setup();
     int teardown();
 };
+
+/** PSD epoch is 00:00:00 Jan 1, 2008 */
+#define POSIX_TIME_AT_PSD_EPOCH 1199145600u
+#define EPICS_TIME_AT_PSD_EPOCH (POSIX_TIME_AT_PSD_EPOCH - POSIX_TIME_AT_EPICS_EPOCH)
+
+/** In "32bit" mode, 4 bytes are used for the seconds and one for subseconds
+  * This struct is stored in network byte order (big endian) */
+typedef struct __attribute__((packed)) {
+    /** Seconds since PSD Epoch */
+    beuint32 s;
+    /** Subseconds (unit 2^-8 sec) */
+    uint8_t ss;
+} psdTime32_t;
+
+/** Convert a 32 bit timestamp from the PSD to an epics time */
+epicsTime epicsTimeFromPSDTime32_t(psdTime32_t src);
+
+/** Convert an epics time to a 32 bit timestamp for the PSD */
+psdTime32_t epicsTimeToPSDTime32_t(epicsTime src);
