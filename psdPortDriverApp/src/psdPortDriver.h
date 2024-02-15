@@ -1,29 +1,31 @@
 // Based off testAsynPortDriver.h
 
+#include "asynPortDriver.h"
+#include "tEndian.h"
 #include <epicsTime.h>
 #include <osiSock.h>
-#include "tEndian.h"
-#include "asynPortDriver.h"
 
 /* These are the drvInfo strings that are used to identify the parameters.
  * They are used by asyn clients, including standard asyn device support */
-#define P_RunString                "PSD_RUN"                  /* asynInt32,    r/w */
-#define P_HistogramString          "PSD_HISTOGRAM"            /* asynInt32Array, r/o */
+#define P_RunString       "PSD_RUN"       /* asynInt32,    r/w */
+#define P_HistogramString "PSD_HISTOGRAM" /* asynInt32Array, r/o */
 
-class psdPortDriver: public asynPortDriver {
+class psdPortDriver : public asynPortDriver {
 public:
-    psdPortDriver(const char *portName, const char *address, const char *tcpPort, const char *udpPort);
+    psdPortDriver(const char *portName, const char *address,
+                  const char *tcpPort, const char *udpPort);
     ~psdPortDriver();
+
+    virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
+    virtual asynStatus readInt32Array(asynUser *pasynUser, epicsInt32 *value,
+                                      size_t nElements, size_t *nIn);
 
     virtual asynStatus connect(asynUser *pasynUser);
     virtual asynStatus disconnect(asynUser *pasynUser);
 
-    virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
-    virtual asynStatus readInt32Array(asynUser *pasynUser, epicsInt32 *value,
-                                        size_t nElements, size_t *nIn);
-
 protected:
-    /** Values used for pasynUser->reason, and indexes into the parameter library. */
+    /** Values used for pasynUser->reason, and indexes into the parameter
+     * library. */
     int P_Run;
     int P_Histogram;
 
@@ -49,11 +51,9 @@ private:
     /** Detector UDP port */
     char *detUDPPort;
 
-
     void freeNetworking();
-    int sendNEUNET(
-        uint32_t address, const char* data, uint8_t dataLength,
-        char* readBuf, size_t readBufSize);
+    int sendNEUNET(uint32_t address, const char *data, uint8_t dataLength,
+                   char *readBuf, size_t readBufSize);
 
     int setup();
     int teardown();
@@ -61,10 +61,11 @@ private:
 
 /** PSD epoch is 00:00:00 Jan 1, 2008 */
 #define POSIX_TIME_AT_PSD_EPOCH 1199145600u
-#define EPICS_TIME_AT_PSD_EPOCH (POSIX_TIME_AT_PSD_EPOCH - POSIX_TIME_AT_EPICS_EPOCH)
+#define EPICS_TIME_AT_PSD_EPOCH                                                \
+    (POSIX_TIME_AT_PSD_EPOCH - POSIX_TIME_AT_EPICS_EPOCH)
 
 /** In "32bit" mode, 4 bytes are used for the seconds and one for subseconds
-  * This struct is stored in network byte order (big endian) */
+ * This struct is stored in network byte order (big endian) */
 typedef struct __attribute__((packed)) {
     /** Seconds since PSD Epoch */
     beuint32 s;
