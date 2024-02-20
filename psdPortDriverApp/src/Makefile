@@ -41,6 +41,8 @@ psdPortDriver_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 #===========================
 
+CODE_CXXFLAGS +=  -Wimplicit-fallthrough
+
 include $(TOP)/configure/RULES
 #----------------------------------------
 #  ADD RULES AFTER THIS LINE

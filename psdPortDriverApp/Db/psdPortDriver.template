@@ -1,23 +1,21 @@
 ###################################################################
 #  These records control run/stop                                 #
 ###################################################################
-record(bo, "$(P)$(R)Run")
+record(bo, "$(P)$(R)Acquire")
 {
-    field(PINI,  "1")
     field(DTYP, "asynInt32")
-    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))PSD_RUN")
-    field(ZNAM, "Stop")
-    field(ONAM, "Run")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))PSD_ACQUIRE")
+    field(ZNAM, "Done")
+    field(ONAM, "Acquire")
 }
 
 record(bi, "$(P)$(R)Run_RBV")
 {
-    field(PINI, "1")
     field(DTYP, "asynInt32")
-    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))PSD_RUN")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))PSD_ACQUIRE")
     field(ZNAM, "Done")
     field(ZSV,  "NO_ALARM")
-    field(ONAM, "Running")
+    field(ONAM, "Acquiring")
     field(OSV,  "MINOR")
     field(SCAN, "I/O Intr")
 }

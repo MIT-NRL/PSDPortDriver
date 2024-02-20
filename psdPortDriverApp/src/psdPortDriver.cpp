@@ -1,5 +1,6 @@
 #include <cmath>
 #include <endian.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -20,12 +21,18 @@
 #include <sys/cdefs.h>
 #include <sys/param.h>
 
+#include "asynDriver.h"
 #include "psdPortDriver.h"
 #include "tEndian.h"
 
 static const char *driverName = "psdPortDriver";
 
 #define NUM_BINS 320
+
+void threadReadEventLoop(void *drvPtr) {
+    psdPortDriver *drv = (psdPortDriver *)drvPtr;
+    drv->readEventLoop();
+}
 
 psdPortDriver::psdPortDriver(const char *portName, const char *address,
                              const char *tcpPort, const char *udpPort)
@@ -51,11 +58,36 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
 
     pCounts_ = (epicsInt32 *)calloc(NUM_BINS, sizeof(epicsInt32));
 
-    createParam(P_RunString, asynParamInt32, &P_Run);
+    // Create the epicsEvents for signaling aquisition start / stop aquiring
+    startEventId_ = epicsEventCreate(epicsEventEmpty);
+    if (!startEventId_) {
+        printf("%s:%s epicsEventCreate failure for start event\n", driverName,
+               __func__);
+        return;
+    }
+    stopEventId_ = epicsEventCreate(epicsEventEmpty);
+    if (!stopEventId_) {
+        printf("%s:%s epicsEventCreate failure for stop event\n", driverName,
+               __func__);
+        return;
+    }
+
+    createParam(P_AcquireString, asynParamInt32, &P_Acquire);
     createParam(P_HistogramString, asynParamInt32Array, &P_Histogram);
 
     // Set the initial values of some parameters
-    setIntegerParam(P_Run, 0);
+    setIntegerParam(P_Acquire, 0);
+
+    // Create the thread that runs the read event loop
+    asynStatus status =
+        (asynStatus)(epicsThreadCreate(
+                         "PSD_ReadEventLoop", epicsThreadPriorityMedium,
+                         epicsThreadGetStackSize(epicsThreadStackMedium),
+                         (EPICSTHREADFUNC)::threadReadEventLoop, this) == NULL);
+    if (status) {
+        printf("%s:%s: epicsThreadCreate failure\n", driverName, __func__);
+        return;
+    }
 }
 
 psdPortDriver::~psdPortDriver() {
@@ -76,34 +108,32 @@ psdPortDriver::~psdPortDriver() {
 asynStatus psdPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
+
+    // Fetch the parameter string name for possible use in debugging
     const char *paramName;
-
-    /* Set the parameter in the parameter library. */
-    status = (asynStatus)setIntegerParam(function, value);
-
-    /* Fetch the parameter string name for possible use in debugging */
     getParamName(function, &paramName);
 
-    if (function == P_Run) {
-        /* If run was set then wake up the simulation task */
-        printf("Run will be set set to %d\n", value);
-        epicsThreadSleep(0.5);
-        printf("Run was set to %d\n", value);
+    // Update values
+    int acquiring;
+    getIntegerParam(P_Acquire, &acquiring);
 
-        // SEND A MESSAGE USING THE SOCKET
-        if (isConnected) {
-            char msg[] = "Run was set!!!\n";
-            int len, bytes_sent;
-            len = strlen(msg);
-            send(tcpSocket, msg, len, 0);
-            send(udpSocket, msg, len, 0);
+    if (function == P_Acquire) {
+        if (value && !acquiring) {
+            // Send an event to wake up the acquisition run loop
+            // Won't start running until lock is released
+            epicsEventSignal(startEventId_);
         }
-
-        pCounts_[0] += 1;
+        if (!value && acquiring) {
+            // Stop aquisition
+            epicsEventSignal(stopEventId_);
+        }
     } else {
         /* All other parameters just get set in parameter list, no need to
          * act on them here */
     }
+
+    // Set the parameter in the parameter library.
+    status = (asynStatus)setIntegerParam(function, value);
 
     /* Do callbacks so higher layers see any changes */
     status = (asynStatus)callParamCallbacks();
@@ -118,6 +148,9 @@ asynStatus psdPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
                   "%s:%s: function=%d, name=%s, value=%d\n", driverName,
                   __func__, function, paramName, value);
     }
+
+    printf("%s:%s: function=%d, name=%s, value=%d\n", driverName, __func__,
+           function, paramName, value);
     return status;
 }
 
@@ -163,12 +196,6 @@ asynStatus psdPortDriver::connect(asynUser *pasynUser) {
     asynStatus status = getAddress(pasynUser, &addr);
     if (status != asynSuccess) {
         return status;
-    }
-
-    if (isConnected) {
-        // Already connected
-        pasynManager->exceptionConnect(pasynUser);
-        return asynSuccess;
     }
 
     // Clean up everything
@@ -240,6 +267,13 @@ asynStatus psdPortDriver::connect(asynUser *pasynUser) {
         return asynError;
     }
 
+    // // Set socket timeout for recv
+    // struct timeval tv;
+    // tv.tv_sec = 1;
+    // tv.tv_usec = 0;
+    // setsockopt(tcpSocket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv,
+    //            sizeof tv);
+
     isConnected = true;
     this->setup();
 
@@ -248,7 +282,10 @@ asynStatus psdPortDriver::connect(asynUser *pasynUser) {
 }
 
 asynStatus psdPortDriver::disconnect(asynUser *pasynUser) {
-    this->teardown();
+    if (isConnected) {
+        this->teardown();
+    }
+
     this->freeNetworking();
     return asynPortDriver::disconnect(pasynUser);
 }
@@ -290,7 +327,7 @@ struct UDPMessageHeader {
 } __attribute__((packed));
 
 /**
- * Reads/writes data from an to a NEUNET register.
+ * Reads/writes data from and to a NEUNET register.
  * Returns the number of bytes written to `readBuf`, or -1 if something failed.
  *
  * \param[in] address Address of the register to write to.
@@ -341,7 +378,7 @@ int psdPortDriver::sendNEUNET(uint32_t address, const char *data,
     char buf[256 + sizeof(UDPMessageHeader)];
     int readBytes = recv(this->udpSocket, buf, sizeof(buf), 0);
 
-    if (readBytes < sizeof(UDPMessageHeader)) {
+    if (readBytes < (int)sizeof(UDPMessageHeader)) {
         return -1;
     }
 
@@ -372,6 +409,7 @@ int psdPortDriver::sendNEUNET(uint32_t address, const char *data,
 #define NEUNET_ADDR_RESOLUTION 0x1B4
 #define NEUNET_ADDR_MODE       0x1B5 /* One-Way / Handshake */
 
+/** Set up all the necessary NEUNET registers for operation */
 int psdPortDriver::setup() {
     // Set time mode to be 32 bit resolution
     const char timeMode32Bit[] = {0x80};
@@ -402,8 +440,9 @@ int psdPortDriver::setup() {
     return 0;
 }
 
+/** Resets NEUNET registers */
 int psdPortDriver::teardown() {
-    // Switch back to handshalke mode
+    // Switch back to handshake mode
     const char handshakeMode[] = {0x00};
     this->sendNEUNET(NEUNET_ADDR_MODE, handshakeMode, sizeof(handshakeMode),
                      NULL, 0);
@@ -411,11 +450,299 @@ int psdPortDriver::teardown() {
     return 0;
 }
 
+/* TCP Networking */
+
+enum class TCPEventType {
+    neutronData12 = 0x5a,
+    neutronData14 = 0x5f,
+    triggerId = 0x5b,
+    triggerIdT0Sync = 0x51,
+    instrumentTime30 = 0x5c,
+    instrumentTime32 = 0x6c,
+};
+
+void psdPortDriver::readEventLoop() {
+    int status = asynSuccess;
+    int acquire = 0;
+    char eventBuffer[8];
+
+    auto notConnectedHandler = [this, &status, &acquire]() {
+        // Try to reconnect once, otherwise stop acquisition.
+        this->disconnect(this->pasynUserSelf);
+        status = this->connect(this->pasynUserSelf);
+        if (status != asynSuccess) {
+            acquire = 0;
+            setIntegerParam(P_Acquire, 0);
+            callParamCallbacks();
+        }
+    };
+
+    this->lock();
+    while (true) {
+        // If we are not acquireing then wait for a semaphore that is given when
+        // acquisition is started
+        if (!acquire) {
+            this->unlock();
+            status = epicsEventWait(startEventId_);
+            this->lock();
+            acquire = 1;
+        } else {
+            // Check if we need to stop acquiring
+            status = epicsEventTryWait(stopEventId_);
+            if (status == epicsEventOK) {
+                acquire = 0;
+                continue;
+            }
+        }
+
+        if (!this->isConnected) {
+            notConnectedHandler();
+            continue;
+        }
+
+        this->unlock();
+        // TODO: Add some kind of timeout...
+        int readBytes = readEvent(eventBuffer);
+        this->lock();
+
+        if (readBytes == 0) {
+            // Reading zero bytes means the TCP connections is closed
+            printf("TCP Disconnected! Trying to reconnect once...\n");
+            notConnectedHandler();
+            continue;
+        }
+
+        if (readBytes != 8) {
+            printf("Read Event Loop error\n");
+            this->unlock();
+            epicsThreadSleep(0.1);
+            this->lock();
+            continue;
+        }
+
+        // Printing stuff
+        const char *eventTypeStr;
+        char eventDescrStr[256] = {0};
+        char hexStr[32] = {0};
+
+        for (int i = 0; i < 8; i++)
+            sprintf(&hexStr[3 * i], "%02X ", eventBuffer[i]);
+        hexStr[3 * 8 - 1] = 0; // Remove trailing space
+
+        PSDEventData event = parseEventData(eventBuffer);
+        switch (event.type) {
+        case PSDEventType::neutron: {
+            NeutronData n = event.neutron;
+            double tof = (double)n.triggerOffset * 0.000000025;
+
+            eventTypeStr = "[Neutron Event]";
+            sprintf(eventDescrStr, "pos=%f  det=%d  tof=%f", n.position,
+                    n.detector, tof);
+        } break;
+
+        case PSDEventType::triggerId: {
+            TriggerId t = event.triggerId;
+
+            eventTypeStr = "[Trigger Event]";
+            sprintf(eventDescrStr, "id=%ld  module=%d  crate=%d", t.triggerId,
+                    t.module, t.crate);
+        } break;
+
+        case PSDEventType::instrumentTime: {
+            epicsTime time = event.instrumentTime;
+
+            eventTypeStr = "[Instrument Time]";
+            time.strftime(eventDescrStr, 256, "%Y-%m-%d %H:%M:%S.%06f");
+        } break;
+
+        case PSDEventType::error: {
+            eventTypeStr = "[Event Error]";
+            eventDescrStr[0] = '-';
+            eventDescrStr[1] = 0;
+
+            // In this case, there might be some data misalignment error...
+            // This theoretically shouldn't ever be the case because TCP
+            // Would ensure that we receive complete data, but according
+            // to the python code this might be a case worth handling.
+            //
+            // -> To handle misalignment: Use MSG_PEEK flag with recv to read
+            //    a large part of the buffer and determine by how much we
+            //    need to shift to fix the misalignment.
+        } break;
+        }
+
+        printf("%-20s %-40s (%s)\n", eventTypeStr, eventDescrStr, hexStr);
+    }
+}
+
+/**
+ * Read / receives an event from NEUNET.
+ * Events can include neutron data, trigger id and instrument time.
+ * All events are 8 bytes long. If receiving data fails, returns -1.
+ * \param[out] buf Buffer to which the received data is written to.
+ *                 Must be at least 8 bytes long.
+ */
+int psdPortDriver::readEvent(char *buf) {
+    if (!isConnected)
+        return 0;
+
+    int bytesRead = recv(this->tcpSocket, buf, 8, MSG_WAITALL);
+    if (bytesRead != 8)
+        printf("Error in readEvent - Read less than 8 bytes (%d)\n", bytesRead);
+    return bytesRead;
+}
+
+PSDEventData parseEventData(char *buf) {
+    union {
+        struct {
+            uint64_t pr : 12;   // Pulse Right
+            uint64_t pl : 12;   // Pulse Left
+            uint64_t p : 8;     // Detector Number
+            uint64_t t : 24;    // Detector Time after Trigger Pulse [25ns]
+            uint64_t event : 8; // Event Type
+        } neutronData12;
+
+        struct {
+            uint64_t pr : 14;   // Pulse Right
+            uint64_t pl : 14;   // Pulse Left
+            uint64_t p : 4;     // Detector Number
+            uint64_t t : 24;    // Detector Time after Trigger Pulse [25ns]
+            uint64_t event : 8; // Event Type
+        } neutronData14;
+
+        struct {
+            uint64_t k : 40;    // Trigger ID
+            uint64_t m : 8;     // Module
+            uint64_t c : 8;     // Crate
+            uint64_t event : 8; // Event Type
+        } triggerId;
+
+        struct {
+            // ASSUMING SELF OSCILATION MODE
+            // WARNING: The manual specifies that us is in 100ns units,
+            //          but I believe that this is wrong.
+            uint64_t us : 18; // Module Clock [25ns]
+            uint64_t ss : 8;  // Subseconds [1/256s]
+            uint64_t s : 30;  // Seconds
+            uint64_t event : 8;
+        } instrumentTime30;
+
+        struct {
+            // ASSUMING SELF OSCILATION MODE
+            uint64_t us : 16; // Module Clock [100ns]
+            uint64_t ss : 8;  // Subseconds [1/256s]
+            uint64_t s : 32;  // Seconds
+            uint64_t event : 8;
+        } instrumentTime32;
+    } event;
+
+    // Convert to host byte order and read into event union
+    uint64_t hData;
+    memcpy(&hData, buf, 8);
+    hData = be64toh(hData);
+    memcpy(&event, &hData, 8);
+
+    switch ((TCPEventType)(buf[0])) {
+    case TCPEventType::neutronData12: {
+        int detector = event.neutronData12.p & 0b111;
+        int tof = event.neutronData12.t;
+        float pulseR = (float)event.neutronData12.pr;
+        float pulseL = (float)event.neutronData12.pl;
+        float pulseH = pulseR + pulseL;
+
+        if (pulseH != 0) {
+            float position = pulseL / pulseH;
+            NeutronData neutron = {
+                .position = position,
+                .detector = detector,
+                .triggerOffset = tof,
+            };
+            return {
+                .type = PSDEventType::neutron,
+                .neutron = neutron,
+            };
+        }
+        break;
+    }
+    case TCPEventType::neutronData14: {
+        int detector = event.neutronData14.p & 0b111;
+        int tof = event.neutronData14.t;
+        float pulseR = (float)event.neutronData14.pr;
+        float pulseL = (float)event.neutronData14.pl;
+        float pulseH = pulseR + pulseL;
+
+        if (pulseH != 0) {
+            float position = pulseL / pulseH;
+            NeutronData neutron = {
+                .position = position,
+                .detector = detector,
+                .triggerOffset = tof,
+            };
+            return {
+                .type = PSDEventType::neutron,
+                .neutron = neutron,
+            };
+        } else {
+            printf("WARNING: Invalid Neutron Data!\n");
+        }
+        break;
+    }
+    case TCPEventType::triggerId:
+    case TCPEventType::triggerIdT0Sync: {
+        uint8_t c = event.triggerId.c;
+        uint8_t m = event.triggerId.m;
+        int64_t k = event.triggerId.k;
+
+        TriggerId triggerId = {.crate = c, .module = m, .triggerId = k};
+        return {
+            .type = PSDEventType::triggerId,
+            .triggerId = triggerId,
+        };
+    }
+    case TCPEventType::instrumentTime30: {
+        uint32_t s = event.instrumentTime30.s;
+        uint32_t ns =
+            ((uint32_t)event.instrumentTime30.ss * NS_IN_ONE_256TH_SEC) +
+            ((uint32_t)event.instrumentTime30.us * 25);
+
+        epicsTimeStamp ts = {
+            .secPastEpoch = s + EPICS_TIME_AT_PSD_EPOCH,
+            .nsec = ns,
+        };
+
+        return {
+            .type = PSDEventType::instrumentTime,
+            .instrumentTime = epicsTime(ts),
+        };
+    }
+    case TCPEventType::instrumentTime32: {
+        uint32_t s = event.instrumentTime32.s;
+        uint32_t ns =
+            ((uint32_t)event.instrumentTime32.ss * NS_IN_ONE_256TH_SEC) +
+            ((uint32_t)event.instrumentTime32.us * 100);
+
+        epicsTimeStamp ts = {
+            .secPastEpoch = s + EPICS_TIME_AT_PSD_EPOCH,
+            .nsec = ns,
+        };
+
+        return {
+            .type = PSDEventType::instrumentTime,
+            .instrumentTime = epicsTime(ts),
+        };
+    }
+    default:
+        break;
+    }
+
+    return {.type = PSDEventType::error};
+}
+
 /* UTILITIES */
 
 epicsTime epicsTimeStampFromPSDTime32_t(psdTime32_t src) {
     epicsTimeStamp refTS;
-    epicsTimeFromTime_t(&refTS, POSIX_TIME_AT_EPICS_EPOCH);
+    epicsTimeFromTime_t(&refTS, POSIX_TIME_AT_PSD_EPOCH);
     epicsTime ref = epicsTime(refTS);
 
     double psdSeconds = (double)(src.s) + ((double)(src.ss) / 256.0);
@@ -424,7 +751,7 @@ epicsTime epicsTimeStampFromPSDTime32_t(psdTime32_t src) {
 
 psdTime32_t epicsTimeToPSDTime32_t(epicsTime src) {
     epicsTimeStamp refTS;
-    epicsTimeFromTime_t(&refTS, POSIX_TIME_AT_EPICS_EPOCH);
+    epicsTimeFromTime_t(&refTS, POSIX_TIME_AT_PSD_EPOCH);
     epicsTime ref = epicsTime(refTS);
     double psdSeconds = (src - ref);
 
@@ -434,13 +761,14 @@ psdTime32_t epicsTimeToPSDTime32_t(epicsTime src) {
     return (psdTime32_t){.s = s, .ss = ss};
 }
 
-/* Configuration routine.  Called directly, or from the iocsh function below */
+/* Configuration routine.  Called directly, or from the iocsh function below
+ */
 
 extern "C" {
 
-/** EPICS iocsh callable function to call constructor for the testAsynPortDriver
- * class.
- * \param[in] portName The name of the asyn port driver to be created.
+/** EPICS iocsh callable function to call constructor for the
+ * testAsynPortDriver class. \param[in] portName The name of the asyn port
+ * driver to be created.
  */
 int psdPortDriverConfigure(const char *portName, const char *address,
                            const char *tcpPort, const char *udpPort) {
