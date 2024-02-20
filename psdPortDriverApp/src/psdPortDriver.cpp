@@ -20,6 +20,7 @@
 #include <osiSock.h>
 #include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/socket.h>
 
 #include "asynDriver.h"
 #include "psdPortDriver.h"
@@ -275,7 +276,14 @@ asynStatus psdPortDriver::connect(asynUser *pasynUser) {
     //            sizeof tv);
 
     isConnected = true;
-    this->setup();
+
+    int setupStatus = this->setup();
+    if (setupStatus < 0) {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+                  "%s::%s error during NEUNET setup\n", driverName, __func__);
+        this->freeNetworking();
+        return asynError;
+    }
 
     pasynManager->exceptionConnect(pasynUser);
     return asynSuccess;
@@ -411,31 +419,42 @@ int psdPortDriver::sendNEUNET(uint32_t address, const char *data,
 
 /** Set up all the necessary NEUNET registers for operation */
 int psdPortDriver::setup() {
+    // sendNEUNET returns a negative value in case of an error.
+    // By oring all status values together, we can just check at the very end if
+    // the value is negative to determine if any of the sendNEUNET commands
+    // failed.
+    int status = 0;
+
     // Set time mode to be 32 bit resolution
     const char timeMode32Bit[] = {0x80};
-    this->sendNEUNET(NEUNET_ADDR_TIMEMODE, timeMode32Bit, sizeof(timeMode32Bit),
-                     NULL, 0);
+    status |= this->sendNEUNET(NEUNET_ADDR_TIMEMODE, timeMode32Bit,
+                               sizeof(timeMode32Bit), NULL, 0);
 
     // Send current time to device
     psdTime32_t currentTime = epicsTimeToPSDTime32_t(epicsTime::getCurrent());
     char currentTimeData[7] = {0};
     memcpy(currentTimeData, &currentTime, sizeof(currentTime));
-    this->sendNEUNET(NEUNET_ADDR_DEVICETIME, currentTimeData,
-                     sizeof(currentTimeData), NULL, 0);
+    status |= this->sendNEUNET(NEUNET_ADDR_DEVICETIME, currentTimeData,
+                               sizeof(currentTimeData), NULL, 0);
 
     // No idea what this does...
     const char evenMemoryReadMode[] = {0x00, 0x00};
-    this->sendNEUNET(NEUNET_ADDR_RW, evenMemoryReadMode,
-                     sizeof(evenMemoryReadMode), NULL, 0);
+    status |= this->sendNEUNET(NEUNET_ADDR_RW, evenMemoryReadMode,
+                               sizeof(evenMemoryReadMode), NULL, 0);
 
     // Set resolution to 14 bit
     const char resolution14Bit[] = {0x8A};
-    this->sendNEUNET(NEUNET_ADDR_RESOLUTION, resolution14Bit,
-                     sizeof(resolution14Bit), NULL, 0);
+    status |= this->sendNEUNET(NEUNET_ADDR_RESOLUTION, resolution14Bit,
+                               sizeof(resolution14Bit), NULL, 0);
 
     // Switch to oneway mode (disable handshake)
     const char oneWayMode[] = {0x80};
-    this->sendNEUNET(NEUNET_ADDR_MODE, oneWayMode, sizeof(oneWayMode), NULL, 0);
+    status |= this->sendNEUNET(NEUNET_ADDR_MODE, oneWayMode, sizeof(oneWayMode),
+                               NULL, 0);
+
+    if (status < 0) {
+        return -1;
+    }
 
     return 0;
 }
@@ -560,14 +579,9 @@ void psdPortDriver::readEventLoop() {
             eventDescrStr[0] = '-';
             eventDescrStr[1] = 0;
 
-            // In this case, there might be some data misalignment error...
-            // This theoretically shouldn't ever be the case because TCP
-            // Would ensure that we receive complete data, but according
-            // to the python code this might be a case worth handling.
-            //
-            // -> To handle misalignment: Use MSG_PEEK flag with recv to read
-            //    a large part of the buffer and determine by how much we
-            //    need to shift to fix the misalignment.
+            // This should only be the case if there is an error with the
+            // alignment of our data -> attempt to fix it
+            this->realignTCP();
         } break;
         }
 
@@ -590,6 +604,48 @@ int psdPortDriver::readEvent(char *buf) {
     if (bytesRead != 8)
         printf("Error in readEvent - Read less than 8 bytes (%d)\n", bytesRead);
     return bytesRead;
+}
+
+/**
+ * Peek the TCP data, and if it appears to be offset, realign it.
+ * This should fix issues in case of missing data.
+ */
+void psdPortDriver::realignTCP() {
+    char buf[32 - 1];
+    int bytesRead =
+        recv(this->tcpSocket, buf, sizeof(buf), MSG_WAITALL + MSG_PEEK);
+
+    if (bytesRead != sizeof(buf)) {
+        return;
+    }
+
+    for (int offset = 0; offset < 8; offset++) {
+        int validHeaders = 0;
+        int invalidHeaders = 0;
+
+        for (int i = offset; i < sizeof(buf); i += 8) {
+            switch ((TCPEventType)buf[i]) {
+            case TCPEventType::neutronData12:
+            case TCPEventType::neutronData14:
+            case TCPEventType::triggerId:
+            case TCPEventType::triggerIdT0Sync:
+            case TCPEventType::instrumentTime30:
+            case TCPEventType::instrumentTime32:
+                validHeaders += 1;
+                break;
+            default:
+                invalidHeaders += 1;
+                break;
+            }
+        }
+
+        if (validHeaders && !invalidHeaders) {
+            // We found an offset, so now we can advance the TCP data buffer
+            // by the ammount corresponding to the offset we found.
+            recv(this->tcpSocket, buf, offset, MSG_WAITALL);
+            return;
+        }
+    }
 }
 
 PSDEventData parseEventData(char *buf) {
@@ -671,21 +727,22 @@ PSDEventData parseEventData(char *buf) {
         float pulseL = (float)event.neutronData14.pl;
         float pulseH = pulseR + pulseL;
 
+        float position;
         if (pulseH != 0) {
-            float position = pulseL / pulseH;
-            NeutronData neutron = {
-                .position = position,
-                .detector = detector,
-                .triggerOffset = tof,
-            };
-            return {
-                .type = PSDEventType::neutron,
-                .neutron = neutron,
-            };
+            position = pulseL / pulseH;
         } else {
-            printf("WARNING: Invalid Neutron Data!\n");
+            position = NAN;
         }
-        break;
+
+        NeutronData neutron = {
+            .position = position,
+            .detector = detector,
+            .triggerOffset = tof,
+        };
+        return {
+            .type = PSDEventType::neutron,
+            .neutron = neutron,
+        };
     }
     case TCPEventType::triggerId:
     case TCPEventType::triggerIdT0Sync: {

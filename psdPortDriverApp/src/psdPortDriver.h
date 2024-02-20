@@ -58,6 +58,7 @@ private:
     int teardown();
 
     int readEvent(char *buf);
+    void realignTCP();
 };
 
 typedef struct {
