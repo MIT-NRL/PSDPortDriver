@@ -58,6 +58,7 @@ private:
                    char *readBuf, size_t readBufSize);
     int setup();
     int teardown();
+    void flushNEUNET();
 
     int readEvent(char *buf);
     void realignTCP();

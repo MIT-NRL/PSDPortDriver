@@ -411,9 +411,10 @@ int psdPortDriver::sendNEUNET(uint32_t address, const char *data,
 
 #define NEUNET_ADDR_TIMEMODE   0x18A
 #define NEUNET_ADDR_DEVICETIME 0x190
-#define NEUNET_ADDR_RW         0x186 /* Why 0x186 and not 0x187 ??? */
+#define NEUNET_ADDR_RW         0x187
+#define NEUNET_ADDR_STATUS_LO  0x189
 #define NEUNET_ADDR_RESOLUTION 0x1B4
-#define NEUNET_ADDR_MODE       0x1B5 /* One-Way / Handshake */
+#define NEUNET_ADDR_MODE       0x1B5
 
 /** Set up all the necessary NEUNET registers for operation */
 int psdPortDriver::setup() {
@@ -435,8 +436,8 @@ int psdPortDriver::setup() {
     status |= this->sendNEUNET(NEUNET_ADDR_DEVICETIME, currentTimeData,
                                sizeof(currentTimeData), NULL, 0);
 
-    // No idea what this does...
-    const char evenMemoryReadMode[] = {0x00, 0x00};
+    // Event memory read mode
+    const char evenMemoryReadMode[] = {0x00};
     status |= this->sendNEUNET(NEUNET_ADDR_RW, evenMemoryReadMode,
                                sizeof(evenMemoryReadMode), NULL, 0);
 
@@ -465,6 +466,32 @@ int psdPortDriver::teardown() {
                      NULL, 0);
 
     return 0;
+}
+
+/**
+ * Flush the NEUNET FIFO and all TCP data.
+ * This can be useful to get rid of stale data.
+ */
+void psdPortDriver::flushNEUNET() {
+    // Tell NEUNET to flush FIFO
+    const char flushFIFO[] = {0x40};
+    this->sendNEUNET(NEUNET_ADDR_STATUS_LO, flushFIFO, sizeof(flushFIFO), NULL,
+                     0);
+
+    // Flush the TCP read buffer
+    const int bufSize = 1024;
+    char buf[bufSize];
+
+    // Set socket to non-blocking mode
+    int flags = fcntl(this->tcpSocket, F_GETFL, 0);
+    fcntl(this->tcpSocket, F_SETFL, flags | O_NONBLOCK);
+
+    // Read all available data
+    while (recv(this->tcpSocket, buf, bufSize, 0) > 0) {
+    }
+
+    // Set socket back to blocking mode
+    fcntl(this->tcpSocket, F_SETFL, flags);
 }
 
 /* TCP Networking */
@@ -506,6 +533,7 @@ void psdPortDriver::readEventLoop() {
 
             // Clear out old histogram
             memset(this->pCounts_, 0, sizeof(epicsInt32) * PSD_MAX_BINS);
+            this->flushNEUNET();
         } else {
             // Check if we need to stop acquiring
             status = epicsEventTryWait(stopEventId_);
@@ -515,7 +543,6 @@ void psdPortDriver::readEventLoop() {
                 // Notify EPICS of new histogram data
                 doCallbacksInt32Array(pCounts_, PSD_MAX_BINS, P_Histogram, 0);
                 callParamCallbacks();
-
                 continue;
             }
         }
@@ -644,7 +671,7 @@ void psdPortDriver::realignTCP() {
         int validHeaders = 0;
         int invalidHeaders = 0;
 
-        for (int i = offset; i < sizeof(buf); i += 8) {
+        for (int i = offset; i < (int)sizeof(buf); i += 8) {
             switch ((TCPEventType)buf[i]) {
             case TCPEventType::neutronData12:
             case TCPEventType::neutronData14:
