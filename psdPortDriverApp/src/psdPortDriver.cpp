@@ -754,19 +754,22 @@ PSDEventData parseEventData(char *buf) {
         float pulseL = (float)event.neutronData12.pl;
         float pulseH = pulseR + pulseL;
 
+        float position;
         if (pulseH != 0) {
-            float position = pulseL / pulseH;
-            NeutronData neutron = {
-                .position = position,
-                .detector = detector,
-                .triggerOffset = tof,
-            };
-            return {
-                .type = PSDEventType::neutron,
-                .neutron = neutron,
-            };
+            position = pulseL / pulseH;
+        } else {
+            position = NAN;
         }
-        break;
+
+        NeutronData neutron = {
+            .position = position,
+            .detector = detector,
+            .triggerOffset = tof,
+        };
+        return {
+            .type = PSDEventType::neutron,
+            .neutron = neutron,
+        };
     }
     case TCPEventType::neutronData14: {
         int detector = event.neutronData14.p & 0b111;
