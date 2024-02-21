@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdint>
 #include <endian.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -28,8 +29,6 @@
 
 static const char *driverName = "psdPortDriver";
 
-#define NUM_BINS 320
-
 void threadReadEventLoop(void *drvPtr) {
     psdPortDriver *drv = (psdPortDriver *)drvPtr;
     drv->readEventLoop();
@@ -57,7 +56,7 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
     detTCPPort = epicsStrDup(tcpPort);
     detUDPPort = epicsStrDup(udpPort);
 
-    pCounts_ = (epicsInt32 *)calloc(NUM_BINS, sizeof(epicsInt32));
+    pCounts_ = (epicsInt32 *)calloc(PSD_MAX_BINS, sizeof(epicsInt32));
 
     // Create the epicsEvents for signaling aquisition start / stop aquiring
     startEventId_ = epicsEventCreate(epicsEventEmpty);
@@ -138,7 +137,6 @@ asynStatus psdPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
 
     /* Do callbacks so higher layers see any changes */
     status = (asynStatus)callParamCallbacks();
-    doCallbacksInt32Array(pCounts_, NUM_BINS, P_Histogram, 0);
 
     if (status) {
         epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
@@ -172,7 +170,7 @@ asynStatus psdPortDriver::readInt32Array(asynUser *pasynUser, epicsInt32 *value,
     getTimeStamp(&timeStamp);
     pasynUser->timestamp = timeStamp;
 
-    ncopy = NUM_BINS;
+    ncopy = PSD_MAX_BINS;
     if (nElements < ncopy)
         ncopy = nElements;
     if (function == P_Histogram) {
@@ -505,11 +503,19 @@ void psdPortDriver::readEventLoop() {
             status = epicsEventWait(startEventId_);
             this->lock();
             acquire = 1;
+
+            // Clear out old histogram
+            memset(this->pCounts_, 0, sizeof(epicsInt32) * PSD_MAX_BINS);
         } else {
             // Check if we need to stop acquiring
             status = epicsEventTryWait(stopEventId_);
             if (status == epicsEventOK) {
                 acquire = 0;
+
+                // Notify EPICS of new histogram data
+                doCallbacksInt32Array(pCounts_, PSD_MAX_BINS, P_Histogram, 0);
+                callParamCallbacks();
+
                 continue;
             }
         }
@@ -557,6 +563,21 @@ void psdPortDriver::readEventLoop() {
             eventTypeStr = "[Neutron Event]";
             sprintf(eventDescrStr, "pos=%f  det=%d  tof=%f", n.position,
                     n.detector, tof);
+
+            // Update histogram
+            if (std::isnan(n.position))
+                break;
+
+            int binIndex =
+                static_cast<int>(std::floor(n.position * PSD_MAX_BINS));
+
+            if (binIndex < 0) {
+                this->pCounts_[0]++;
+            } else if (binIndex >= PSD_MAX_BINS) {
+                this->pCounts_[PSD_MAX_BINS - 1]++;
+            } else {
+                this->pCounts_[binIndex]++;
+            }
         } break;
 
         case PSDEventType::triggerId: {

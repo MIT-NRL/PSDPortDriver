@@ -6,9 +6,11 @@
 #include <epicsTime.h>
 #include <osiSock.h>
 
+#define PSD_MAX_BINS 1024
+
 /* These are the drvInfo strings that are used to identify the parameters.
  * They are used by asyn clients, including standard asyn device support */
-#define P_AcquireString   "PSD_ACQUIRE"   /* asynInt32,    r/w */
+#define P_AcquireString   "PSD_ACQUIRE"   /* asynInt32,      r/w */
 #define P_HistogramString "PSD_HISTOGRAM" /* asynInt32Array, r/o */
 
 class psdPortDriver : public asynPortDriver {
