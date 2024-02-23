@@ -1,17 +1,19 @@
 // Based off testAsynPortDriver.h
 
 #include "asynPortDriver.h"
-#include "tEndian.h"
+#include "include/tEndian.h"
+#include <array>
 #include <epicsThread.h>
 #include <epicsTime.h>
 #include <osiSock.h>
 
-#define PSD_MAX_BINS 1024
+#define PSD_MAX_BINS      512
+#define PSD_NUM_DETECTORS 8
 
 /* These are the drvInfo strings that are used to identify the parameters.
  * They are used by asyn clients, including standard asyn device support */
 #define P_AcquireString   "PSD_ACQUIRE"   /* asynInt32,      r/w */
-#define P_HistogramString "PSD_HISTOGRAM" /* asynInt32Array, r/o */
+#define P_CountsString    "PSD_COUNTS"    /* asynInt32Array, r/o */
 
 class psdPortDriver : public asynPortDriver {
 public:
@@ -32,13 +34,13 @@ protected:
     /** Values used for pasynUser->reason, and indexes into the parameter
      * library. */
     int P_Acquire;
-    int P_Histogram;
+    int P_Counts;
 
 private:
     // Data
     epicsEventId startEventId_;
     epicsEventId stopEventId_;
-    epicsInt32 *pCounts_;
+    std::array<epicsInt32, PSD_NUM_DETECTORS * PSD_MAX_BINS> counts_;
 
     // Networking
     char *detAddr;

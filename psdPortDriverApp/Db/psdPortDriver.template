@@ -9,7 +9,7 @@ record(bo, "$(P)$(R)Acquire")
     field(ONAM, "Acquire")
 }
 
-record(bi, "$(P)$(R)Run_RBV")
+record(bi, "$(P)$(R)Acquire_RBV")
 {
     field(DTYP, "asynInt32")
     field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))PSD_ACQUIRE")
@@ -21,13 +21,13 @@ record(bi, "$(P)$(R)Run_RBV")
 }
 
 ###################################################################
-#  This record is the histogram                                   #z
+#  This record is the counts data                                 #
 ###################################################################
-record(waveform, "$(P)$(R)Histogram_RBV")
+record(waveform, "$(P)$(R)Counts_RBV")
 {
     field(DTYP, "asynInt32ArrayIn")
-    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))PSD_HISTOGRAM")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))PSD_COUNTS")
     field(FTVL, "LONG")
-    field(NELM, "1024")
+    field(NELM, "4096")
     field(SCAN, "I/O Intr")
 }

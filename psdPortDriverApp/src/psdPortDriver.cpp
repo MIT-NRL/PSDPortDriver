@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <endian.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -24,8 +26,8 @@
 #include <sys/socket.h>
 
 #include "asynDriver.h"
+#include "include/tEndian.h"
 #include "psdPortDriver.h"
-#include "tEndian.h"
 
 static const char *driverName = "psdPortDriver";
 
@@ -41,7 +43,7 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
         1,                                                                      /* maxAddr */
         asynInt32Mask | asynFloat64Mask | asynInt32ArrayMask | asynDrvUserMask, /* Interface mask */
         asynInt32Mask | asynFloat64Mask | asynInt32ArrayMask,                   /* Interrupt mask */
-        ASYN_CANBLOCK | ASYN_MULTIDEVICE,                                       /* asynFlags */
+        ASYN_CANBLOCK,                                                          /* asynFlags */
         1,                                                                      /* Autoconnect */
         0,                                                                      /* Default priority */
         0                                                                       /* Default stack size*/
@@ -55,8 +57,6 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
     detAddr = epicsStrDup(address);
     detTCPPort = epicsStrDup(tcpPort);
     detUDPPort = epicsStrDup(udpPort);
-
-    pCounts_ = (epicsInt32 *)calloc(PSD_MAX_BINS, sizeof(epicsInt32));
 
     // Create the epicsEvents for signaling aquisition start / stop aquiring
     startEventId_ = epicsEventCreate(epicsEventEmpty);
@@ -73,7 +73,7 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
     }
 
     createParam(P_AcquireString, asynParamInt32, &P_Acquire);
-    createParam(P_HistogramString, asynParamInt32Array, &P_Histogram);
+    createParam(P_CountsString, asynParamInt32Array, &P_Counts);
 
     // Set the initial values of some parameters
     setIntegerParam(P_Acquire, 0);
@@ -163,18 +163,16 @@ asynStatus psdPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
 asynStatus psdPortDriver::readInt32Array(asynUser *pasynUser, epicsInt32 *value,
                                          size_t nElements, size_t *nIn) {
     int function = pasynUser->reason;
-    size_t ncopy;
     asynStatus status = asynSuccess;
     epicsTimeStamp timeStamp;
 
     getTimeStamp(&timeStamp);
     pasynUser->timestamp = timeStamp;
 
-    ncopy = PSD_MAX_BINS;
-    if (nElements < ncopy)
-        ncopy = nElements;
-    if (function == P_Histogram) {
-        memcpy(value, pCounts_, ncopy * sizeof(epicsInt32));
+    size_t ncopy = std::min(nElements, this->counts_.size());
+
+    if (function == P_Counts) {
+        std::copy_n(this->counts_.begin(), ncopy, value);
         *nIn = ncopy;
     }
 
@@ -531,8 +529,8 @@ void psdPortDriver::readEventLoop() {
             this->lock();
             acquire = 1;
 
-            // Clear out old histogram
-            memset(this->pCounts_, 0, sizeof(epicsInt32) * PSD_MAX_BINS);
+            // Clear out old counts
+            std::fill(counts_.begin(), counts_.end(), 0);
             this->flushNEUNET();
         } else {
             // Check if we need to stop acquiring
@@ -540,8 +538,9 @@ void psdPortDriver::readEventLoop() {
             if (status == epicsEventOK) {
                 acquire = 0;
 
-                // Notify EPICS of new histogram data
-                doCallbacksInt32Array(pCounts_, PSD_MAX_BINS, P_Histogram, 0);
+                // Notify EPICS of new counts data
+                doCallbacksInt32Array(this->counts_.data(),
+                                      this->counts_.size(), P_Counts, 0);
                 callParamCallbacks();
                 continue;
             }
@@ -591,19 +590,20 @@ void psdPortDriver::readEventLoop() {
             sprintf(eventDescrStr, "pos=%f  det=%d  tof=%f", n.position,
                     n.detector, tof);
 
-            // Update histogram
+            // Update counts
             if (std::isnan(n.position))
                 break;
 
             int binIndex =
                 static_cast<int>(std::floor(n.position * PSD_MAX_BINS));
+            int offset = PSD_MAX_BINS * n.detector;
 
             if (binIndex < 0) {
-                this->pCounts_[0]++;
+                this->counts_[offset]++;
             } else if (binIndex >= PSD_MAX_BINS) {
-                this->pCounts_[PSD_MAX_BINS - 1]++;
+                this->counts_[offset + PSD_MAX_BINS - 1]++;
             } else {
-                this->pCounts_[binIndex]++;
+                this->counts_[offset + binIndex]++;
             }
         } break;
 
