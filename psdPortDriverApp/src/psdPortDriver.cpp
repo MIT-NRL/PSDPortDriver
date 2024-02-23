@@ -26,8 +26,12 @@
 #include <sys/socket.h>
 
 #include "asynDriver.h"
+#include "asynParamType.h"
 #include "include/tEndian.h"
+#include "osdTime.h"
 #include "psdPortDriver.h"
+
+#define PRINT_EVENTS 1
 
 static const char *driverName = "psdPortDriver";
 
@@ -73,10 +77,8 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
     }
 
     createParam(P_AcquireString, asynParamInt32, &P_Acquire);
+    createParam(P_AcquireTimeString, asynParamFloat64, &P_AcquireTime);
     createParam(P_CountsString, asynParamInt32Array, &P_Counts);
-
-    // Set the initial values of some parameters
-    setIntegerParam(P_Acquire, 0);
 
     // Create the thread that runs the read event loop
     asynStatus status =
@@ -504,16 +506,22 @@ enum class TCPEventType {
 };
 
 void psdPortDriver::readEventLoop() {
+    enum class AcquisitionState { stopped, starting, acquiring, stopping };
+
+    AcquisitionState state = AcquisitionState::stopped;
+    double acquireTime = 0.0;
+    epicsTime startTime;
+
     int status = asynSuccess;
-    int acquire = 0;
     char eventBuffer[8];
 
-    auto notConnectedHandler = [this, &status, &acquire]() {
-        // Try to reconnect once, otherwise stop acquisition.
+    auto notConnectedHandler = [this, &status, &state]() {
+        // Try to reconnect once, otherwise stop acquisition without returning
+        // new data.
         this->disconnect(this->pasynUserSelf);
         status = this->connect(this->pasynUserSelf);
         if (status != asynSuccess) {
-            acquire = 0;
+            state = AcquisitionState::stopped;
             setIntegerParam(P_Acquire, 0);
             callParamCallbacks();
         }
@@ -521,29 +529,45 @@ void psdPortDriver::readEventLoop() {
 
     this->lock();
     while (true) {
-        // If we are not acquireing then wait for a semaphore that is given when
-        // acquisition is started
-        if (!acquire) {
+    loopStart:
+        switch (state) {
+        case AcquisitionState::stopped: {
+            // If we are not acquireing then wait for a semaphore that is given
+            // when acquisition is started
             this->unlock();
             status = epicsEventWait(startEventId_);
             this->lock();
-            acquire = 1;
+            state = AcquisitionState::starting;
 
             // Clear out old counts
             std::fill(counts_.begin(), counts_.end(), 0);
             this->flushNEUNET();
-        } else {
+            this->realignTCP();
+
+            // Read parameters
+            getDoubleParam(P_AcquireTime, &acquireTime);
+        } break;
+
+        case AcquisitionState::starting:
+        case AcquisitionState::acquiring: {
             // Check if we need to stop acquiring
             status = epicsEventTryWait(stopEventId_);
             if (status == epicsEventOK) {
-                acquire = 0;
-
-                // Notify EPICS of new counts data
-                doCallbacksInt32Array(this->counts_.data(),
-                                      this->counts_.size(), P_Counts, 0);
-                callParamCallbacks();
-                continue;
+                state = AcquisitionState::stopping;
+                goto loopStart;
             }
+        } break;
+
+        case AcquisitionState::stopping: {
+            // Notify EPICS of new counts data
+            setIntegerParam(P_Acquire, 0);
+            doCallbacksInt32Array(this->counts_.data(), this->counts_.size(),
+                                  P_Counts, 0);
+            callParamCallbacks();
+
+            state = AcquisitionState::stopped;
+            goto loopStart;
+        }
         }
 
         if (!this->isConnected) {
@@ -571,24 +595,15 @@ void psdPortDriver::readEventLoop() {
             continue;
         }
 
-        // Printing stuff
-        const char *eventTypeStr;
-        char eventDescrStr[256] = {0};
-        char hexStr[32] = {0};
-
-        for (int i = 0; i < 8; i++)
-            sprintf(&hexStr[3 * i], "%02X ", eventBuffer[i]);
-        hexStr[3 * 8 - 1] = 0; // Remove trailing space
-
+        // Event handling
         PSDEventData event = parseEventData(eventBuffer);
         switch (event.type) {
         case PSDEventType::neutron: {
+            if (state != AcquisitionState::acquiring)
+                break;
+
             NeutronData n = event.neutron;
             double tof = (double)n.triggerOffset * 0.000000025;
-
-            eventTypeStr = "[Neutron Event]";
-            sprintf(eventDescrStr, "pos=%f  det=%d  tof=%f", n.position,
-                    n.detector, tof);
 
             // Update counts
             if (std::isnan(n.position))
@@ -605,6 +620,48 @@ void psdPortDriver::readEventLoop() {
             } else {
                 this->counts_[offset + binIndex]++;
             }
+        } break;
+
+        case PSDEventType::triggerId:
+            break;
+
+        case PSDEventType::instrumentTime: {
+            epicsTime time = event.instrumentTime;
+            if (state == AcquisitionState::starting) {
+                startTime = time;
+                state = AcquisitionState::acquiring;
+            } else if (acquireTime > 0) {
+                double timeDelta = time - startTime;
+                if (timeDelta >= acquireTime) {
+                    state = AcquisitionState::stopping;
+                }
+            }
+        } break;
+
+        case PSDEventType::error: {
+            // This should only be the case if there is an error with the
+            // alignment of our data -> attempt to fix it
+            this->realignTCP();
+        } break;
+        }
+
+#if PRINT_EVENTS
+        const char *eventTypeStr;
+        char eventDescrStr[256] = {0};
+        char hexStr[32] = {0};
+
+        for (int i = 0; i < 8; i++)
+            sprintf(&hexStr[3 * i], "%02X ", eventBuffer[i]);
+        hexStr[3 * 8 - 1] = 0; // Remove trailing space
+
+        switch (event.type) {
+        case PSDEventType::neutron: {
+            NeutronData n = event.neutron;
+            double tof = (double)n.triggerOffset * 0.000000025;
+
+            eventTypeStr = "[Neutron Event]";
+            sprintf(eventDescrStr, "pos=%f  det=%d  tof=%f", n.position,
+                    n.detector, tof);
         } break;
 
         case PSDEventType::triggerId: {
@@ -626,14 +683,11 @@ void psdPortDriver::readEventLoop() {
             eventTypeStr = "[Event Error]";
             eventDescrStr[0] = '-';
             eventDescrStr[1] = 0;
-
-            // This should only be the case if there is an error with the
-            // alignment of our data -> attempt to fix it
-            this->realignTCP();
         } break;
         }
 
         printf("%-20s %-40s (%s)\n", eventTypeStr, eventDescrStr, hexStr);
+#endif
     }
 }
 

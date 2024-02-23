@@ -4,7 +4,7 @@
 record(bo, "$(P)$(R)Acquire")
 {
     field(DTYP, "asynInt32")
-    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))PSD_ACQUIRE")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ACQUIRE")
     field(ZNAM, "Done")
     field(ONAM, "Acquire")
 }
@@ -12,7 +12,7 @@ record(bo, "$(P)$(R)Acquire")
 record(bi, "$(P)$(R)Acquire_RBV")
 {
     field(DTYP, "asynInt32")
-    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))PSD_ACQUIRE")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ACQUIRE")
     field(ZNAM, "Done")
     field(ZSV,  "NO_ALARM")
     field(ONAM, "Acquiring")
@@ -21,12 +21,33 @@ record(bi, "$(P)$(R)Acquire_RBV")
 }
 
 ###################################################################
+#  These records control the acquisition time and                 #
+#  period                                                         #
+###################################################################
+record(ao, "$(P)$(R)AcquireTime")
+{
+   field(PINI, "YES")
+   field(DTYP, "asynFloat64")
+   field(OUT,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))ACQ_TIME")
+   field(PREC, "3")
+   field(VAL,  "0.0")
+}
+
+record(ai, "$(P)$(R)AcquireTime_RBV")
+{
+   field(DTYP, "asynFloat64")
+   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))ACQ_TIME")
+   field(PREC, "3")
+   field(SCAN, "I/O Intr")
+}
+
+###################################################################
 #  This record is the counts data                                 #
 ###################################################################
 record(waveform, "$(P)$(R)Counts_RBV")
 {
     field(DTYP, "asynInt32ArrayIn")
-    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))PSD_COUNTS")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))COUNTS")
     field(FTVL, "LONG")
     field(NELM, "4096")
     field(SCAN, "I/O Intr")

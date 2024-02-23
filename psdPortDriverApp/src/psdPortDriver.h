@@ -1,6 +1,7 @@
 // Based off testAsynPortDriver.h
 
 #include "asynPortDriver.h"
+#include "epicsTypes.h"
 #include "include/tEndian.h"
 #include <array>
 #include <epicsThread.h>
@@ -12,8 +13,9 @@
 
 /* These are the drvInfo strings that are used to identify the parameters.
  * They are used by asyn clients, including standard asyn device support */
-#define P_AcquireString   "PSD_ACQUIRE"   /* asynInt32,      r/w */
-#define P_CountsString    "PSD_COUNTS"    /* asynInt32Array, r/o */
+#define P_AcquireString     "ACQUIRE"  /* asynInt32,      r/w */
+#define P_AcquireTimeString "ACQ_TIME" /* asynFloat64,    r/w */
+#define P_CountsString      "COUNTS"   /* asynInt32Array, r/o */
 
 class psdPortDriver : public asynPortDriver {
 public:
@@ -34,6 +36,7 @@ protected:
     /** Values used for pasynUser->reason, and indexes into the parameter
      * library. */
     int P_Acquire;
+    int P_AcquireTime;
     int P_Counts;
 
 private:
