@@ -26,25 +26,47 @@ record(bi, "$(P)$(R)Acquire_RBV")
 ###################################################################
 record(ao, "$(P)$(R)AcquireTime")
 {
-   field(PINI, "YES")
-   field(DTYP, "asynFloat64")
-   field(OUT,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))ACQ_TIME")
-   field(PREC, "3")
-   field(VAL,  "0.0")
+    field(PINI, "YES")
+    field(DTYP, "asynFloat64")
+    field(OUT,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))ACQ_TIME")
+    field(PREC, "3")
+    field(VAL,  "0.0")
 }
 
 record(ai, "$(P)$(R)AcquireTime_RBV")
 {
-   field(DTYP, "asynFloat64")
-   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))ACQ_TIME")
-   field(PREC, "3")
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))ACQ_TIME")
+    field(PREC, "3")
+    field(SCAN, "I/O Intr")
+}
+
+###################################################################
+#  Number of bins to use                                          #
+###################################################################
+record(longout, "$(P)$(R)NBins")
+{
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))NUM_BINS")
+    field(VAL,  "256")
+    field(LOPR, "1")
+    field(DRVL, "1")
+    field(HOPR, "512")
+    field(DRVH, "512")
+}
+
+record(longin, "$(P)$(R)NBins_RBV")
+{
+   field(DTYP, "asynInt32")
+   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))NUM_BINS")
    field(SCAN, "I/O Intr")
 }
 
 ###################################################################
 #  This record is the counts data                                 #
 ###################################################################
-record(waveform, "$(P)$(R)Counts_RBV")
+record(waveform, "$(P)$(R)Counts")
 {
     field(DTYP, "asynInt32ArrayIn")
     field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))COUNTS")

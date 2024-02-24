@@ -78,6 +78,7 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
 
     createParam(P_AcquireString, asynParamInt32, &P_Acquire);
     createParam(P_AcquireTimeString, asynParamFloat64, &P_AcquireTime);
+    createParam(P_NumBinsString, asynParamInt32, &P_NumBins);
     createParam(P_CountsString, asynParamInt32Array, &P_Counts);
 
     // Create the thread that runs the read event loop
@@ -509,7 +510,8 @@ void psdPortDriver::readEventLoop() {
     enum class AcquisitionState { stopped, starting, acquiring, stopping };
 
     AcquisitionState state = AcquisitionState::stopped;
-    double acquireTime = 0.0;
+    double acquireTime;
+    int numBins;
     epicsTime startTime;
 
     int status = asynSuccess;
@@ -546,6 +548,7 @@ void psdPortDriver::readEventLoop() {
 
             // Read parameters
             getDoubleParam(P_AcquireTime, &acquireTime);
+            getIntegerParam(P_NumBins, &numBins);
         } break;
 
         case AcquisitionState::starting:
@@ -560,9 +563,10 @@ void psdPortDriver::readEventLoop() {
 
         case AcquisitionState::stopping: {
             // Notify EPICS of new counts data
+            size_t countsSize = numBins * PSD_NUM_DETECTORS;
             setIntegerParam(P_Acquire, 0);
-            doCallbacksInt32Array(this->counts_.data(), this->counts_.size(),
-                                  P_Counts, 0);
+            doCallbacksInt32Array(this->counts_.data(), countsSize, P_Counts,
+                                  0);
             callParamCallbacks();
 
             state = AcquisitionState::stopped;
@@ -609,14 +613,13 @@ void psdPortDriver::readEventLoop() {
             if (std::isnan(n.position))
                 break;
 
-            int binIndex =
-                static_cast<int>(std::floor(n.position * PSD_MAX_BINS));
-            int offset = PSD_MAX_BINS * n.detector;
+            int binIndex = static_cast<int>(std::floor(n.position * numBins));
+            int offset = numBins * n.detector;
 
             if (binIndex < 0) {
                 this->counts_[offset]++;
-            } else if (binIndex >= PSD_MAX_BINS) {
-                this->counts_[offset + PSD_MAX_BINS - 1]++;
+            } else if (binIndex >= numBins) {
+                this->counts_[offset + numBins - 1]++;
             } else {
                 this->counts_[offset + binIndex]++;
             }

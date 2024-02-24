@@ -15,6 +15,7 @@
  * They are used by asyn clients, including standard asyn device support */
 #define P_AcquireString     "ACQUIRE"  /* asynInt32,      r/w */
 #define P_AcquireTimeString "ACQ_TIME" /* asynFloat64,    r/w */
+#define P_NumBinsString     "NUM_BINS" /* asynInt32,      r/w */
 #define P_CountsString      "COUNTS"   /* asynInt32Array, r/o */
 
 class psdPortDriver : public asynPortDriver {
@@ -37,6 +38,7 @@ protected:
      * library. */
     int P_Acquire;
     int P_AcquireTime;
+    int P_NumBins;
     int P_Counts;
 
 private:
