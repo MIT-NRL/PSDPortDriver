@@ -12,7 +12,7 @@ class SimTCPHandler(socketserver.StreamRequestHandler):
             chunks = [tcp_data[i:i+8] for i in range(0, len(tcp_data), 8)]
             for d in itertools.cycle(chunks):
                 self.wfile.write(d)
-                time.sleep(0.1)
+                time.sleep(0.025)
 
                 if random.randint(0, 100) == 0:
                     # Write some random data to simulate a missalignment error

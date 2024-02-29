@@ -13,10 +13,13 @@
 
 /* These are the drvInfo strings that are used to identify the parameters.
  * They are used by asyn clients, including standard asyn device support */
-#define P_AcquireString     "ACQUIRE"  /* asynInt32,      r/w */
-#define P_AcquireTimeString "ACQ_TIME" /* asynFloat64,    r/w */
-#define P_NumBinsString     "NUM_BINS" /* asynInt32,      r/w */
-#define P_CountsString      "COUNTS"   /* asynInt32Array, r/o */
+#define P_AcquireString         "ACQUIRE"           /* asynInt32,      r/w */
+#define P_AcquireTimeString     "ACQ_TIME"          /* asynFloat64,    r/w */
+#define P_NumBinsString         "NUM_BINS"          /* asynInt32,      r/w */
+#define P_CountsString          "COUNTS"            /* asynInt32Array, r/o */
+#define P_TotalCountsString     "TOTAL_COUNTS"      /* asynInt64,      r/o */
+#define P_LiveCountsString      "LIVE_COUNTS"       /* asynInt32Array, r/o */
+#define P_LiveTotalCountsString "LIVE_TOTAL_COUNTS" /* asynInt64,      r/o */
 
 class psdPortDriver : public asynPortDriver {
 public:
@@ -40,12 +43,16 @@ protected:
     int P_AcquireTime;
     int P_NumBins;
     int P_Counts;
+    int P_TotalCounts;
+    int P_LiveCounts;
+    int P_LiveTotalCounts;
 
 private:
     // Data
     epicsEventId startEventId_;
     epicsEventId stopEventId_;
     std::array<epicsInt32, PSD_NUM_DETECTORS * PSD_MAX_BINS> counts_;
+    epicsInt64 totalCounts_;
 
     // Networking
     char *detAddr;

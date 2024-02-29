@@ -45,8 +45,10 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
     : asynPortDriver( // clang-format off
         portName,                                                               /* portName */
         1,                                                                      /* maxAddr */
-        asynInt32Mask | asynFloat64Mask | asynInt32ArrayMask | asynDrvUserMask, /* Interface mask */
-        asynInt32Mask | asynFloat64Mask | asynInt32ArrayMask,                   /* Interrupt mask */
+        asynInt32Mask | asynInt64Mask | asynFloat64Mask
+            | asynInt32ArrayMask | asynDrvUserMask,                             /* Interface mask */
+        asynInt32Mask | asynInt64Mask | asynFloat64Mask
+            | asynInt32ArrayMask,                                               /* Interrupt mask */
         ASYN_CANBLOCK,                                                          /* asynFlags */
         1,                                                                      /* Autoconnect */
         0,                                                                      /* Default priority */
@@ -80,6 +82,9 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
     createParam(P_AcquireTimeString, asynParamFloat64, &P_AcquireTime);
     createParam(P_NumBinsString, asynParamInt32, &P_NumBins);
     createParam(P_CountsString, asynParamInt32Array, &P_Counts);
+    createParam(P_TotalCountsString, asynParamInt64, &P_TotalCounts);
+    createParam(P_LiveCountsString, asynParamInt32Array, &P_LiveCounts);
+    createParam(P_LiveTotalCountsString, asynParamInt64, &P_LiveTotalCounts);
 
     // Create the thread that runs the read event loop
     asynStatus status =
@@ -156,7 +161,7 @@ asynStatus psdPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
     return status;
 }
 
-/** Called when asyn clients call pasynFloat64Array->read().
+/** Called when asyn clients call pasynInt32Array->read().
  * Returns the value of the P_Waveform or P_TimeBase arrays.
  * \param[in] pasynUser pasynUser structure that encodes the reason and address.
  * \param[in] value Pointer to the array to read.
@@ -175,6 +180,9 @@ asynStatus psdPortDriver::readInt32Array(asynUser *pasynUser, epicsInt32 *value,
     size_t ncopy = std::min(nElements, this->counts_.size());
 
     if (function == P_Counts) {
+        std::copy_n(this->counts_.begin(), ncopy, value);
+        *nIn = ncopy;
+    } else if (function == P_LiveCounts) {
         std::copy_n(this->counts_.begin(), ncopy, value);
         *nIn = ncopy;
     }
@@ -542,9 +550,16 @@ void psdPortDriver::readEventLoop() {
             state = AcquisitionState::starting;
 
             // Clear out old counts
+            this->totalCounts_ = 0;
             std::fill(counts_.begin(), counts_.end(), 0);
             this->flushNEUNET();
             this->realignTCP();
+
+            // Reset Live Counts
+            size_t countsSize = numBins * PSD_NUM_DETECTORS;
+            doCallbacksInt32Array(this->counts_.data(), countsSize,
+                                  P_LiveCounts, 0);
+            callParamCallbacks();
 
             // Read parameters
             getDoubleParam(P_AcquireTime, &acquireTime);
@@ -565,9 +580,13 @@ void psdPortDriver::readEventLoop() {
             // Notify EPICS of new counts data
             size_t countsSize = numBins * PSD_NUM_DETECTORS;
             setIntegerParam(P_Acquire, 0);
+            setInteger64Param(P_TotalCounts, this->totalCounts_);
+            setInteger64Param(P_LiveTotalCounts, this->totalCounts_);
+            callParamCallbacks();
             doCallbacksInt32Array(this->counts_.data(), countsSize, P_Counts,
                                   0);
-            callParamCallbacks();
+            doCallbacksInt32Array(this->counts_.data(), countsSize,
+                                  P_LiveCounts, 0);
 
             state = AcquisitionState::stopped;
             goto loopStart;
@@ -623,6 +642,8 @@ void psdPortDriver::readEventLoop() {
             } else {
                 this->counts_[offset + binIndex]++;
             }
+
+            this->totalCounts_++;
         } break;
 
         case PSDEventType::triggerId:
@@ -639,6 +660,12 @@ void psdPortDriver::readEventLoop() {
                     state = AcquisitionState::stopping;
                 }
             }
+
+            // TODO: Determine how often to actually update the live counts
+            setInteger64Param(P_LiveTotalCounts, this->totalCounts_);
+            callParamCallbacks();
+            doCallbacksInt32Array(this->counts_.data(),
+                                  numBins * PSD_NUM_DETECTORS, P_LiveCounts, 0);
         } break;
 
         case PSDEventType::error: {
