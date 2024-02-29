@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>741</width>
+    <height>602</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">caTable {
+       background: cornsilk;
+       alternate-background-color: wheat;
+}
+
+caLineEdit {
+     border-radius: 1px;
+     background: lightyellow;
+     color: black;
+ }
+ 
+ caLabel {
+     border-radius: 1px;
+     background: lightyellow;
+     color: black;
+ }
+
+caTextEntry {
+    color: rgb(127, 0, 63);
+    background-color: cornsilk;
+    selection-color: #0a214c;
+    selection-background-color: wheat;
+    border: 1px groove black;
+    border-radius: 1px;
+    padding: 1px;
+}
+
+caTextEntry:focus {
+    padding: 0px;
+    border: 2px groove darkred;
+    border-radius: 1px;
+}
+
+/* when font specified, no font sizing is done any more,  font: 10pt; is not bad */
+QPushButton {
+      border-color: #00b;
+      border-radius: 2px;
+      padding: 3px;
+      border-width: 1px;
+
+	background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1,
+						   stop:0   rgba(224, 239, 255, 255),
+						   stop:0.5 rgba(199, 215, 230, 255),
+						   stop:1   rgba(184, 214, 236, 255));
+}
+QPushButton:hover {
+	background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1,
+						stop:0   rgba(201, 226, 255, 255),
+						stop:0.5 rgba(177, 204, 230, 255),
+						stop:1   rgba(163, 205, 236, 255));
+}
+QPushButton:pressed {
+	background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1,
+						stop:0   rgba(174, 219, 255, 255),
+						stop:0.5 rgba(165, 199, 230, 255),
+						stop:1   rgba(134, 188, 236, 255));
+}
+
+QPushButton:disabled {
+	background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1,
+						stop:0   rgba(174, 219, 255, 255),
+						stop:0.5 rgba(165, 199, 230, 255),
+						stop:1   rgba(134, 188, 236, 255));
+}
+
+
+caChoice &gt; QPushButton {
+text-align: left;
+background-color: lightgray;
+border: 3px gray;
+}
+
+caChoice &gt; QPushButton:pressed {
+background-color: lightgray;
+border: 3px gray;
+}
+
+caChoice &gt; QPushButton:checked {
+background-color: #EEEEEE;
+border: 3px gray;
+}
+
+caChoice &gt; QPushButton:default {
+background-color: lightgray;
+border: 3px gray;
+}
+
+caMenu{
+    background: lightyellow;
+}
+
+</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1">
+    <item>
+     <layout class="QFormLayout" name="formLayout">
+      <property name="fieldGrowthPolicy">
+       <enum>QFormLayout::ExpandingFieldsGrow</enum>
+      </property>
+      <property name="rowWrapPolicy">
+       <enum>QFormLayout::DontWrapRows</enum>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLabel" name="totalCountsLabel">
+        <property name="text">
+         <string>Total Counts</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="caLineDraw" name="totalCountscaLineDraw">
+        <property name="minimumSize">
+         <size>
+          <width>100</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Monospace</family>
+          <pointsize>10</pointsize>
+          <stylestrategy>PreferDefault</stylestrategy>
+         </font>
+        </property>
+        <property name="channel" stdset="0">
+         <string>$(P)$(R)LiveTotalCounts</string>
+        </property>
+        <property name="alignment">
+         <enum>caLineDraw::Left</enum>
+        </property>
+        <property name="background">
+         <color>
+          <red>230</red>
+          <green>230</green>
+          <blue>230</blue>
+         </color>
+        </property>
+        <property name="colorMode">
+         <enum>caLineDraw::Static</enum>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="caInclude" name="cainclude">
+      <property name="macro">
+       <string>V=LiveCounts,P=$(P),R=$(R)</string>
+      </property>
+      <property name="filename" stdset="0">
+       <string notr="true">psddetector_plot.ui</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>caInclude</class>
+   <extends>QWidget</extends>
+   <header>caInclude</header>
+  </customwidget>
+  <customwidget>
+   <class>caLineDraw</class>
+   <extends>QWidget</extends>
+   <header>caLineDraw</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
