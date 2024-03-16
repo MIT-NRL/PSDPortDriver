@@ -2,9 +2,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <endian.h>
 #include <fcntl.h>
-#include <netinet/in.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,13 +21,17 @@
 #include <osiSock.h>
 #include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/socket.h>
 
 #include "asynDriver.h"
 #include "asynParamType.h"
+#include "include/portable_endian.h"
 #include "include/tEndian.h"
-#include "osdTime.h"
 #include "psdPortDriver.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
 
 #define PRINT_EVENTS 1
 
@@ -411,8 +413,8 @@ int psdPortDriver::sendNEUNET(uint32_t address, const char *data,
     // Copy out the data
     if (readBuf != NULL) {
         memcpy(readBuf, buf + sizeof(UDPMessageHeader),
-               MIN(readBufSize, recvHeader->dataLength));
-        return MIN(readBufSize, recvHeader->dataLength);
+               std::min(readBufSize, (size_t)recvHeader->dataLength));
+        return std::min(readBufSize, (size_t)recvHeader->dataLength);
     }
 
     return 0;
@@ -434,31 +436,31 @@ int psdPortDriver::setup() {
     int status = 0;
 
     // Set time mode to be 32 bit resolution
-    const char timeMode32Bit[] = {0x80};
-    status |= this->sendNEUNET(NEUNET_ADDR_TIMEMODE, timeMode32Bit,
+    const unsigned char timeMode32Bit[] = {0x80};
+    status |= this->sendNEUNET(NEUNET_ADDR_TIMEMODE, (char *)timeMode32Bit,
                                sizeof(timeMode32Bit), NULL, 0);
 
     // Send current time to device
     psdTime32_t currentTime = epicsTimeToPSDTime32_t(epicsTime::getCurrent());
-    char currentTimeData[7] = {0};
+    unsigned char currentTimeData[7] = {0};
     memcpy(currentTimeData, &currentTime, sizeof(currentTime));
-    status |= this->sendNEUNET(NEUNET_ADDR_DEVICETIME, currentTimeData,
+    status |= this->sendNEUNET(NEUNET_ADDR_DEVICETIME, (char *)currentTimeData,
                                sizeof(currentTimeData), NULL, 0);
 
     // Event memory read mode
-    const char evenMemoryReadMode[] = {0x00};
-    status |= this->sendNEUNET(NEUNET_ADDR_RW, evenMemoryReadMode,
+    const unsigned char evenMemoryReadMode[] = {0x00};
+    status |= this->sendNEUNET(NEUNET_ADDR_RW, (char *)evenMemoryReadMode,
                                sizeof(evenMemoryReadMode), NULL, 0);
 
     // Set resolution to 14 bit
-    const char resolution14Bit[] = {0x8A};
-    status |= this->sendNEUNET(NEUNET_ADDR_RESOLUTION, resolution14Bit,
+    const unsigned char resolution14Bit[] = {0x8A};
+    status |= this->sendNEUNET(NEUNET_ADDR_RESOLUTION, (char *)resolution14Bit,
                                sizeof(resolution14Bit), NULL, 0);
 
     // Switch to oneway mode (disable handshake)
-    const char oneWayMode[] = {0x80};
-    status |= this->sendNEUNET(NEUNET_ADDR_MODE, oneWayMode, sizeof(oneWayMode),
-                               NULL, 0);
+    const unsigned char oneWayMode[] = {0x80};
+    status |= this->sendNEUNET(NEUNET_ADDR_MODE, (char *)oneWayMode,
+                               sizeof(oneWayMode), NULL, 0);
 
     if (status < 0) {
         return -1;
@@ -481,6 +483,7 @@ int psdPortDriver::teardown() {
  * Flush the NEUNET FIFO and all TCP data.
  * This can be useful to get rid of stale data.
  */
+
 void psdPortDriver::flushNEUNET() {
     // Tell NEUNET to flush FIFO
     const char flushFIFO[] = {0x40};
@@ -492,15 +495,25 @@ void psdPortDriver::flushNEUNET() {
     char buf[bufSize];
 
     // Set socket to non-blocking mode
+#if _WIN32
+    u_long mode = 1; // non-zero sets non-blocking mode
+    ioctlsocket(this->tcpSocket, FIONBIO, &mode);
+#else
     int flags = fcntl(this->tcpSocket, F_GETFL, 0);
     fcntl(this->tcpSocket, F_SETFL, flags | O_NONBLOCK);
+#endif
 
     // Read all available data
     while (recv(this->tcpSocket, buf, bufSize, 0) > 0) {
     }
 
     // Set socket back to blocking mode
+#if _WIN32
+    mode = 0; // zero sets blocking mode
+    ioctlsocket(this->tcpSocket, FIONBIO, &mode);
+#else
     fcntl(this->tcpSocket, F_SETFL, flags);
+#endif
 }
 
 /* TCP Networking */
