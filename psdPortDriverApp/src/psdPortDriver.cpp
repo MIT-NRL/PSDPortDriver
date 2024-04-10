@@ -592,15 +592,17 @@ void psdPortDriver::readEventLoop() {
         case AcquisitionState::stopping: {
             // Notify EPICS of new counts data
             size_t countsSize = numBins * PSD_NUM_DETECTORS;
-            setIntegerParam(P_Acquire, 0);
             setInteger64Param(P_TotalCounts, this->totalCounts_);
             setInteger64Param(P_LiveTotalCounts, this->totalCounts_);
-            callParamCallbacks();
             doCallbacksInt32Array(this->counts_.data(), countsSize, P_Counts,
                                   0);
             doCallbacksInt32Array(this->counts_.data(), countsSize,
                                   P_LiveCounts, 0);
+            callParamCallbacks();
 
+            // Set acquire back to done after the other PV have been updated
+            setIntegerParam(P_Acquire, 0);
+            callParamCallbacks();
             state = AcquisitionState::stopped;
             goto loopStart;
         }
