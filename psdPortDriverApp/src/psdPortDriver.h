@@ -17,9 +17,9 @@
 #define P_AcquireTimeString     "ACQ_TIME"          /* asynFloat64,    r/w */
 #define P_NumBinsString         "NUM_BINS"          /* asynInt32,      r/w */
 #define P_CountsString          "COUNTS"            /* asynInt32Array, r/o */
-#define P_TotalCountsString     "TOTAL_COUNTS"      /* asynInt64,      r/o */
+#define P_TotalCountsString     "TOTAL_COUNTS"      /* asynInt64Array, r/o */
 #define P_LiveCountsString      "LIVE_COUNTS"       /* asynInt32Array, r/o */
-#define P_LiveTotalCountsString "LIVE_TOTAL_COUNTS" /* asynInt64,      r/o */
+#define P_LiveTotalCountsString "LIVE_TOTAL_COUNTS" /* asynInt64Array, r/o */
 
 class psdPortDriver : public asynPortDriver {
 public:
@@ -52,7 +52,7 @@ private:
     epicsEventId startEventId_;
     epicsEventId stopEventId_;
     std::array<epicsInt32, PSD_NUM_DETECTORS * PSD_MAX_BINS> counts_;
-    epicsInt64 totalCounts_;
+    std::array<epicsInt64, PSD_NUM_DETECTORS> totalCounts_;
 
     // Networking
     char *detAddr;

@@ -209,11 +209,11 @@ record(subArray, "$(P)$(R)CountsD7") {
 }
 
 
-record(int64in, "$(P)$(R)TotalCounts") {
-  field(PINI, "YES")
-  field(DTYP, "asynInt64")
+record(waveform, "$(P)$(R)TotalCounts") {
+  field(DTYP, "asynInt64ArrayIn")
   field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))TOTAL_COUNTS")
-  field(VAL, "0")
+  field(FTVL, "INT64")
+  field(NELM, "8")
   field(SCAN, "I/O Intr")
 }
 
@@ -370,10 +370,10 @@ record(subArray, "$(P)$(R)LiveCountsD7") {
 }
 
 
-record(int64in, "$(P)$(R)LiveTotalCounts") {
-  field(PINI, "YES")
-  field(DTYP, "asynInt64")
+record(waveform, "$(P)$(R)LiveTotalCounts") {
+  field(DTYP, "asynInt64ArrayIn")
   field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))LIVE_TOTAL_COUNTS")
-  field(VAL, "0")
+  field(FTVL, "INT64")
+  field(NELM, "8")
   field(SCAN, "I/O Intr")
 }
