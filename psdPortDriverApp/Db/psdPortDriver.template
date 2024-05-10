@@ -77,18 +77,18 @@ record(calcout, "$(P)$(R)CountsSubElements") {
 }
 
 record(dfanout, "$(P)$(R)CountsSubElementsFanout") {
-  field(FLNK, "$(P)$(R)CountsD0")
-  field(OUTA, "$(P)$(R)CountsD0.NELM")
-  field(OUTB, "$(P)$(R)CountsD1.NELM")
-  field(OUTC, "$(P)$(R)CountsD2.NELM")
-  field(OUTD, "$(P)$(R)CountsD3.NELM")
-  field(OUTE, "$(P)$(R)CountsD4.NELM")
-  field(OUTF, "$(P)$(R)CountsD5.NELM")
-  field(OUTG, "$(P)$(R)CountsD6.NELM")
-  field(OUTH, "$(P)$(R)CountsD7.NELM")
+  field(FLNK, "$(P)$(R)Det0:Counts")
+  field(OUTA, "$(P)$(R)Det0:Counts.NELM")
+  field(OUTB, "$(P)$(R)Det1:Counts.NELM")
+  field(OUTC, "$(P)$(R)Det2:Counts.NELM")
+  field(OUTD, "$(P)$(R)Det3:Counts.NELM")
+  field(OUTE, "$(P)$(R)Det4:Counts.NELM")
+  field(OUTF, "$(P)$(R)Det5:Counts.NELM")
+  field(OUTG, "$(P)$(R)Det6:Counts.NELM")
+  field(OUTH, "$(P)$(R)Det7:Counts.NELM")
 }
 
-record(subArray, "$(P)$(R)CountsD0") {
+record(subArray, "$(P)$(R)Det0:Counts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)Counts NPP NMS")
   field(MALM, "4096")
@@ -100,11 +100,11 @@ record(subArray, "$(P)$(R)CountsD0") {
 record(calcout, "$(P)$(R)CountsIndexD1") {
   field(CALC, "(A/8) * 1")
   field(INPA, "$(P)$(R)Counts.NORD")
-  field(OUT, "$(P)$(R)CountsD1.INDX")
-  field(FLNK, "$(P)$(R)CountsD1")
+  field(OUT, "$(P)$(R)Det1:Counts.INDX")
+  field(FLNK, "$(P)$(R)Det1:Counts")
 }
 
-record(subArray, "$(P)$(R)CountsD1") {
+record(subArray, "$(P)$(R)Det1:Counts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)Counts NPP NMS")
   field(MALM, "4096")
@@ -116,11 +116,11 @@ record(subArray, "$(P)$(R)CountsD1") {
 record(calcout, "$(P)$(R)CountsIndexD2") {
   field(CALC, "(A/8) * 2")
   field(INPA, "$(P)$(R)Counts.NORD")
-  field(OUT, "$(P)$(R)CountsD2.INDX")
-  field(FLNK, "$(P)$(R)CountsD2")
+  field(OUT, "$(P)$(R)Det2:Counts.INDX")
+  field(FLNK, "$(P)$(R)Det2:Counts")
 }
 
-record(subArray, "$(P)$(R)CountsD2") {
+record(subArray, "$(P)$(R)Det2:Counts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)Counts NPP NMS")
   field(MALM, "4096")
@@ -132,11 +132,11 @@ record(subArray, "$(P)$(R)CountsD2") {
 record(calcout, "$(P)$(R)CountsIndexD3") {
   field(CALC, "(A/8) * 3")
   field(INPA, "$(P)$(R)Counts.NORD")
-  field(OUT, "$(P)$(R)CountsD3.INDX")
-  field(FLNK, "$(P)$(R)CountsD3")
+  field(OUT, "$(P)$(R)Det3:Counts.INDX")
+  field(FLNK, "$(P)$(R)Det3:Counts")
 }
 
-record(subArray, "$(P)$(R)CountsD3") {
+record(subArray, "$(P)$(R)Det3:Counts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)Counts NPP NMS")
   field(MALM, "4096")
@@ -148,11 +148,11 @@ record(subArray, "$(P)$(R)CountsD3") {
 record(calcout, "$(P)$(R)CountsIndexD4") {
   field(CALC, "(A/8) * 4")
   field(INPA, "$(P)$(R)Counts.NORD")
-  field(OUT, "$(P)$(R)CountsD4.INDX")
-  field(FLNK, "$(P)$(R)CountsD4")
+  field(OUT, "$(P)$(R)Det4:Counts.INDX")
+  field(FLNK, "$(P)$(R)Det4:Counts")
 }
 
-record(subArray, "$(P)$(R)CountsD4") {
+record(subArray, "$(P)$(R)Det4:Counts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)Counts NPP NMS")
   field(MALM, "4096")
@@ -164,11 +164,11 @@ record(subArray, "$(P)$(R)CountsD4") {
 record(calcout, "$(P)$(R)CountsIndexD5") {
   field(CALC, "(A/8) * 5")
   field(INPA, "$(P)$(R)Counts.NORD")
-  field(OUT, "$(P)$(R)CountsD5.INDX")
-  field(FLNK, "$(P)$(R)CountsD5")
+  field(OUT, "$(P)$(R)Det5:Counts.INDX")
+  field(FLNK, "$(P)$(R)Det5:Counts")
 }
 
-record(subArray, "$(P)$(R)CountsD5") {
+record(subArray, "$(P)$(R)Det5:Counts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)Counts NPP NMS")
   field(MALM, "4096")
@@ -180,11 +180,11 @@ record(subArray, "$(P)$(R)CountsD5") {
 record(calcout, "$(P)$(R)CountsIndexD6") {
   field(CALC, "(A/8) * 6")
   field(INPA, "$(P)$(R)Counts.NORD")
-  field(OUT, "$(P)$(R)CountsD6.INDX")
-  field(FLNK, "$(P)$(R)CountsD6")
+  field(OUT, "$(P)$(R)Det6:Counts.INDX")
+  field(FLNK, "$(P)$(R)Det6:Counts")
 }
 
-record(subArray, "$(P)$(R)CountsD6") {
+record(subArray, "$(P)$(R)Det6:Counts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)Counts NPP NMS")
   field(MALM, "4096")
@@ -196,11 +196,11 @@ record(subArray, "$(P)$(R)CountsD6") {
 record(calcout, "$(P)$(R)CountsIndexD7") {
   field(CALC, "(A/8) * 7")
   field(INPA, "$(P)$(R)Counts.NORD")
-  field(OUT, "$(P)$(R)CountsD7.INDX")
-  field(FLNK, "$(P)$(R)CountsD7")
+  field(OUT, "$(P)$(R)Det7:Counts.INDX")
+  field(FLNK, "$(P)$(R)Det7:Counts")
 }
 
-record(subArray, "$(P)$(R)CountsD7") {
+record(subArray, "$(P)$(R)Det7:Counts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)Counts NPP NMS")
   field(MALM, "4096")
@@ -238,18 +238,18 @@ record(calcout, "$(P)$(R)LiveCountsSubElements") {
 }
 
 record(dfanout, "$(P)$(R)LiveCountsSubElementsFanout") {
-  field(FLNK, "$(P)$(R)LiveCountsD0")
-  field(OUTA, "$(P)$(R)LiveCountsD0.NELM")
-  field(OUTB, "$(P)$(R)LiveCountsD1.NELM")
-  field(OUTC, "$(P)$(R)LiveCountsD2.NELM")
-  field(OUTD, "$(P)$(R)LiveCountsD3.NELM")
-  field(OUTE, "$(P)$(R)LiveCountsD4.NELM")
-  field(OUTF, "$(P)$(R)LiveCountsD5.NELM")
-  field(OUTG, "$(P)$(R)LiveCountsD6.NELM")
-  field(OUTH, "$(P)$(R)LiveCountsD7.NELM")
+  field(FLNK, "$(P)$(R)Det0:LiveCounts")
+  field(OUTA, "$(P)$(R)Det0:LiveCounts.NELM")
+  field(OUTB, "$(P)$(R)Det1:LiveCounts.NELM")
+  field(OUTC, "$(P)$(R)Det2:LiveCounts.NELM")
+  field(OUTD, "$(P)$(R)Det3:LiveCounts.NELM")
+  field(OUTE, "$(P)$(R)Det4:LiveCounts.NELM")
+  field(OUTF, "$(P)$(R)Det5:LiveCounts.NELM")
+  field(OUTG, "$(P)$(R)Det6:LiveCounts.NELM")
+  field(OUTH, "$(P)$(R)Det7:LiveCounts.NELM")
 }
 
-record(subArray, "$(P)$(R)LiveCountsD0") {
+record(subArray, "$(P)$(R)Det0:LiveCounts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)LiveCounts NPP NMS")
   field(MALM, "4096")
@@ -261,11 +261,11 @@ record(subArray, "$(P)$(R)LiveCountsD0") {
 record(calcout, "$(P)$(R)LiveCountsIndexD1") {
   field(CALC, "(A/8) * 1")
   field(INPA, "$(P)$(R)LiveCounts.NORD")
-  field(OUT, "$(P)$(R)LiveCountsD1.INDX")
-  field(FLNK, "$(P)$(R)LiveCountsD1")
+  field(OUT, "$(P)$(R)Det1:LiveCounts.INDX")
+  field(FLNK, "$(P)$(R)Det1:LiveCounts")
 }
 
-record(subArray, "$(P)$(R)LiveCountsD1") {
+record(subArray, "$(P)$(R)Det1:LiveCounts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)LiveCounts NPP NMS")
   field(MALM, "4096")
@@ -277,11 +277,11 @@ record(subArray, "$(P)$(R)LiveCountsD1") {
 record(calcout, "$(P)$(R)LiveCountsIndexD2") {
   field(CALC, "(A/8) * 2")
   field(INPA, "$(P)$(R)LiveCounts.NORD")
-  field(OUT, "$(P)$(R)LiveCountsD2.INDX")
-  field(FLNK, "$(P)$(R)LiveCountsD2")
+  field(OUT, "$(P)$(R)Det2:LiveCounts.INDX")
+  field(FLNK, "$(P)$(R)Det2:LiveCounts")
 }
 
-record(subArray, "$(P)$(R)LiveCountsD2") {
+record(subArray, "$(P)$(R)Det2:LiveCounts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)LiveCounts NPP NMS")
   field(MALM, "4096")
@@ -293,11 +293,11 @@ record(subArray, "$(P)$(R)LiveCountsD2") {
 record(calcout, "$(P)$(R)LiveCountsIndexD3") {
   field(CALC, "(A/8) * 3")
   field(INPA, "$(P)$(R)LiveCounts.NORD")
-  field(OUT, "$(P)$(R)LiveCountsD3.INDX")
-  field(FLNK, "$(P)$(R)LiveCountsD3")
+  field(OUT, "$(P)$(R)Det3:LiveCounts.INDX")
+  field(FLNK, "$(P)$(R)Det3:LiveCounts")
 }
 
-record(subArray, "$(P)$(R)LiveCountsD3") {
+record(subArray, "$(P)$(R)Det3:LiveCounts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)LiveCounts NPP NMS")
   field(MALM, "4096")
@@ -309,11 +309,11 @@ record(subArray, "$(P)$(R)LiveCountsD3") {
 record(calcout, "$(P)$(R)LiveCountsIndexD4") {
   field(CALC, "(A/8) * 4")
   field(INPA, "$(P)$(R)LiveCounts.NORD")
-  field(OUT, "$(P)$(R)LiveCountsD4.INDX")
-  field(FLNK, "$(P)$(R)LiveCountsD4")
+  field(OUT, "$(P)$(R)Det4:LiveCounts.INDX")
+  field(FLNK, "$(P)$(R)Det4:LiveCounts")
 }
 
-record(subArray, "$(P)$(R)LiveCountsD4") {
+record(subArray, "$(P)$(R)Det4:LiveCounts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)LiveCounts NPP NMS")
   field(MALM, "4096")
@@ -325,11 +325,11 @@ record(subArray, "$(P)$(R)LiveCountsD4") {
 record(calcout, "$(P)$(R)LiveCountsIndexD5") {
   field(CALC, "(A/8) * 5")
   field(INPA, "$(P)$(R)LiveCounts.NORD")
-  field(OUT, "$(P)$(R)LiveCountsD5.INDX")
-  field(FLNK, "$(P)$(R)LiveCountsD5")
+  field(OUT, "$(P)$(R)Det5:LiveCounts.INDX")
+  field(FLNK, "$(P)$(R)Det5:LiveCounts")
 }
 
-record(subArray, "$(P)$(R)LiveCountsD5") {
+record(subArray, "$(P)$(R)Det5:LiveCounts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)LiveCounts NPP NMS")
   field(MALM, "4096")
@@ -341,11 +341,11 @@ record(subArray, "$(P)$(R)LiveCountsD5") {
 record(calcout, "$(P)$(R)LiveCountsIndexD6") {
   field(CALC, "(A/8) * 6")
   field(INPA, "$(P)$(R)LiveCounts.NORD")
-  field(OUT, "$(P)$(R)LiveCountsD6.INDX")
-  field(FLNK, "$(P)$(R)LiveCountsD6")
+  field(OUT, "$(P)$(R)Det6:LiveCounts.INDX")
+  field(FLNK, "$(P)$(R)Det6:LiveCounts")
 }
 
-record(subArray, "$(P)$(R)LiveCountsD6") {
+record(subArray, "$(P)$(R)Det6:LiveCounts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)LiveCounts NPP NMS")
   field(MALM, "4096")
@@ -357,11 +357,11 @@ record(subArray, "$(P)$(R)LiveCountsD6") {
 record(calcout, "$(P)$(R)LiveCountsIndexD7") {
   field(CALC, "(A/8) * 7")
   field(INPA, "$(P)$(R)LiveCounts.NORD")
-  field(OUT, "$(P)$(R)LiveCountsD7.INDX")
-  field(FLNK, "$(P)$(R)LiveCountsD7")
+  field(OUT, "$(P)$(R)Det7:LiveCounts.INDX")
+  field(FLNK, "$(P)$(R)Det7:LiveCounts")
 }
 
-record(subArray, "$(P)$(R)LiveCountsD7") {
+record(subArray, "$(P)$(R)Det7:LiveCounts") {
   field(FTVL, "LONG")
   field(INP, "$(P)$(R)LiveCounts NPP NMS")
   field(MALM, "4096")
@@ -376,4 +376,60 @@ record(waveform, "$(P)$(R)LiveTotalCounts") {
   field(FTVL, "INT64")
   field(NELM, "8")
   field(SCAN, "I/O Intr")
+  field(FLNK, "$(P)$(R)Det0:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det0:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det1:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det1:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det2:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det2:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det3:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det3:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det4:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det4:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det5:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det5:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det6:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det6:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det7:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det7:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
 }
