@@ -48,9 +48,9 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
         portName,                                                               /* portName */
         1,                                                                      /* maxAddr */
         asynInt32Mask | asynInt64Mask | asynFloat64Mask
-            | asynInt32ArrayMask | asynDrvUserMask,                             /* Interface mask */
+            | asynInt32ArrayMask | asynInt64ArrayMask | asynDrvUserMask,        /* Interface mask */
         asynInt32Mask | asynInt64Mask | asynFloat64Mask
-            | asynInt32ArrayMask,                                               /* Interrupt mask */
+            | asynInt32ArrayMask | asynInt64ArrayMask,                          /* Interrupt mask */
         ASYN_CANBLOCK,                                                          /* asynFlags */
         1,                                                                      /* Autoconnect */
         0,                                                                      /* Default priority */
@@ -84,9 +84,10 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
     createParam(P_AcquireTimeString, asynParamFloat64, &P_AcquireTime);
     createParam(P_NumBinsString, asynParamInt32, &P_NumBins);
     createParam(P_CountsString, asynParamInt32Array, &P_Counts);
-    createParam(P_TotalCountsString, asynParamInt64, &P_TotalCounts);
+    createParam(P_TotalCountsString, asynParamInt64Array, &P_TotalCounts);
     createParam(P_LiveCountsString, asynParamInt32Array, &P_LiveCounts);
-    createParam(P_LiveTotalCountsString, asynParamInt64, &P_LiveTotalCounts);
+    createParam(P_LiveTotalCountsString, asynParamInt64Array,
+                &P_LiveTotalCounts);
 
     // Create the thread that runs the read event loop
     asynStatus status =
@@ -563,7 +564,7 @@ void psdPortDriver::readEventLoop() {
             state = AcquisitionState::starting;
 
             // Clear out old counts
-            this->totalCounts_ = 0;
+            std::fill(totalCounts_.begin(), totalCounts_.end(), 0);
             std::fill(counts_.begin(), counts_.end(), 0);
             this->flushNEUNET();
             this->realignTCP();
@@ -592,8 +593,11 @@ void psdPortDriver::readEventLoop() {
         case AcquisitionState::stopping: {
             // Notify EPICS of new counts data
             size_t countsSize = numBins * PSD_NUM_DETECTORS;
-            setInteger64Param(P_TotalCounts, this->totalCounts_);
-            setInteger64Param(P_LiveTotalCounts, this->totalCounts_);
+            doCallbacksInt64Array(this->totalCounts_.data(),
+                                  this->totalCounts_.size(), P_TotalCounts, 0);
+            doCallbacksInt64Array(this->totalCounts_.data(),
+                                  this->totalCounts_.size(), P_LiveTotalCounts,
+                                  0);
             doCallbacksInt32Array(this->counts_.data(), countsSize, P_Counts,
                                   0);
             doCallbacksInt32Array(this->counts_.data(), countsSize,
@@ -658,7 +662,7 @@ void psdPortDriver::readEventLoop() {
                 this->counts_[offset + binIndex]++;
             }
 
-            this->totalCounts_++;
+            this->totalCounts_[n.detector]++;
         } break;
 
         case PSDEventType::triggerId:
@@ -677,8 +681,10 @@ void psdPortDriver::readEventLoop() {
             }
 
             // TODO: Determine how often to actually update the live counts
-            setInteger64Param(P_LiveTotalCounts, this->totalCounts_);
             callParamCallbacks();
+            doCallbacksInt64Array(this->totalCounts_.data(),
+                                  this->totalCounts_.size(), P_LiveTotalCounts,
+                                  0);
             doCallbacksInt32Array(this->counts_.data(),
                                   numBins * PSD_NUM_DETECTORS, P_LiveCounts, 0);
         } break;
