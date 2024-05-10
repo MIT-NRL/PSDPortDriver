@@ -33,7 +33,7 @@
 #include <ws2tcpip.h>
 #endif
 
-#define PRINT_EVENTS 1
+#define PRINT_EVENTS 0
 
 static const char *driverName = "psdPortDriver";
 
