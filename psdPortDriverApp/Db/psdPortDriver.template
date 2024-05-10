@@ -376,4 +376,60 @@ record(waveform, "$(P)$(R)LiveTotalCounts") {
   field(FTVL, "INT64")
   field(NELM, "8")
   field(SCAN, "I/O Intr")
+  field(FLNK, "$(P)$(R)Det0:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det0:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det1:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det1:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det2:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det2:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det3:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det3:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det4:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det4:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det5:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det5:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det6:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det6:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
+  field(FLNK, "$(P)$(R)Det7:LiveTotalCounts")
+}
+
+record(subArray, "$(P)$(R)Det7:LiveTotalCounts") {
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(FTVL, "INT64")
+  field(NELM, "1")
 }
