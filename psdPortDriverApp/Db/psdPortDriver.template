@@ -387,49 +387,49 @@ record(subArray, "$(P)$(R)Det0:LiveTotalCounts") {
 }
 
 record(subArray, "$(P)$(R)Det1:LiveTotalCounts") {
-  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[1] NPP NMS")
   field(FTVL, "INT64")
   field(NELM, "1")
   field(FLNK, "$(P)$(R)Det2:LiveTotalCounts")
 }
 
 record(subArray, "$(P)$(R)Det2:LiveTotalCounts") {
-  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[2] NPP NMS")
   field(FTVL, "INT64")
   field(NELM, "1")
   field(FLNK, "$(P)$(R)Det3:LiveTotalCounts")
 }
 
 record(subArray, "$(P)$(R)Det3:LiveTotalCounts") {
-  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[3] NPP NMS")
   field(FTVL, "INT64")
   field(NELM, "1")
   field(FLNK, "$(P)$(R)Det4:LiveTotalCounts")
 }
 
 record(subArray, "$(P)$(R)Det4:LiveTotalCounts") {
-  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[4] NPP NMS")
   field(FTVL, "INT64")
   field(NELM, "1")
   field(FLNK, "$(P)$(R)Det5:LiveTotalCounts")
 }
 
 record(subArray, "$(P)$(R)Det5:LiveTotalCounts") {
-  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[5] NPP NMS")
   field(FTVL, "INT64")
   field(NELM, "1")
   field(FLNK, "$(P)$(R)Det6:LiveTotalCounts")
 }
 
 record(subArray, "$(P)$(R)Det6:LiveTotalCounts") {
-  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[6] NPP NMS")
   field(FTVL, "INT64")
   field(NELM, "1")
   field(FLNK, "$(P)$(R)Det7:LiveTotalCounts")
 }
 
 record(subArray, "$(P)$(R)Det7:LiveTotalCounts") {
-  field(INP, "$(P)$(R)LiveTotalCounts.VAL[0] NPP NMS")
+  field(INP, "$(P)$(R)LiveTotalCounts.VAL[7] NPP NMS")
   field(FTVL, "INT64")
   field(NELM, "1")
 }
