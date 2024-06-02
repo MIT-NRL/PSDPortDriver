@@ -424,7 +424,7 @@ int psdPortDriver::sendNEUNET(uint32_t address, const char *data,
 #define NEUNET_ADDR_TIMEMODE   0x18A
 #define NEUNET_ADDR_DEVICETIME 0x190
 #define NEUNET_ADDR_RW         0x187
-#define NEUNET_ADDR_STATUS_LO  0x189
+#define NEUNET_ADDR_STATUS_LO  0x188
 #define NEUNET_ADDR_RESOLUTION 0x1B4
 #define NEUNET_ADDR_MODE       0x1B5
 
