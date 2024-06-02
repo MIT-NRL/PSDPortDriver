@@ -551,6 +551,7 @@ void psdPortDriver::readEventLoop() {
         }
     };
 
+    int startTries = 0;
     this->lock();
     while (true) {
     loopStart:
@@ -562,6 +563,7 @@ void psdPortDriver::readEventLoop() {
             status = epicsEventWait(startEventId_);
             this->lock();
             state = AcquisitionState::starting;
+            startTries = 0;
 
             // Clear out old counts
             std::fill(totalCounts_.begin(), totalCounts_.end(), 0);
@@ -671,8 +673,22 @@ void psdPortDriver::readEventLoop() {
         case PSDEventType::instrumentTime: {
             epicsTime time = event.instrumentTime;
             if (state == AcquisitionState::starting) {
+                epicsTime currentTime = epicsTime::getCurrent();
                 startTime = time;
-                state = AcquisitionState::acquiring;
+                double startTimeDelta = currentTime - startTime;
+                std::cout << "Acquisition started at " << startTime << "   delta = " << startTimeDelta << "   " << startTries <<  std::endl;
+                
+                // Ignore all stale data if buffer clear doesn't work
+                if (startTimeDelta < 0.1) {
+                    state = AcquisitionState::acquiring;
+                } else if (startTries < 100) {
+                    this->flushNEUNET();
+                    this->realignTCP();
+                    startTries++;
+                } else {
+                    this->disconnect(this->pasynUserSelf);
+                    this->connect(this->pasynUserSelf);
+                }
             } else if (acquireTime > 0) {
                 double timeDelta = time - startTime;
                 if (timeDelta >= acquireTime) {
