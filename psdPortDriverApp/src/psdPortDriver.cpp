@@ -88,6 +88,7 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
     createParam(P_LiveCountsString, asynParamInt32Array, &P_LiveCounts);
     createParam(P_LiveTotalCountsString, asynParamInt64Array,
                 &P_LiveTotalCounts);
+    createParam(P_ConnectString, asynParamInt32, &P_Connect);
 
     // Create the thread that runs the read event loop
     asynStatus status =
@@ -138,7 +139,14 @@ asynStatus psdPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
             // Stop aquisition
             epicsEventSignal(stopEventId_);
         }
-    } else {
+    } else if (function == P_Connect) {
+        if (value && !isConnected) {
+            status = this->connect(pasynUser);
+        } else {
+            status = this->disconnect(pasynUser);
+        }
+    }   
+    else {
         /* All other parameters just get set in parameter list, no need to
          * act on them here */
     }
@@ -295,6 +303,7 @@ asynStatus psdPortDriver::connect(asynUser *pasynUser) {
         return asynError;
     }
 
+    setIntegerParam(P_Connect, 1);
     pasynManager->exceptionConnect(pasynUser);
     return asynSuccess;
 }
@@ -305,6 +314,7 @@ asynStatus psdPortDriver::disconnect(asynUser *pasynUser) {
     }
 
     this->freeNetworking();
+    setIntegerParam(P_Connect, 0);
     return asynPortDriver::disconnect(pasynUser);
 }
 
@@ -424,7 +434,7 @@ int psdPortDriver::sendNEUNET(uint32_t address, const char *data,
 #define NEUNET_ADDR_TIMEMODE   0x18A
 #define NEUNET_ADDR_DEVICETIME 0x190
 #define NEUNET_ADDR_RW         0x187
-#define NEUNET_ADDR_STATUS_LO  0x188
+#define NEUNET_ADDR_STATUS_LO  0x189
 #define NEUNET_ADDR_RESOLUTION 0x1B4
 #define NEUNET_ADDR_MODE       0x1B5
 
@@ -681,13 +691,14 @@ void psdPortDriver::readEventLoop() {
                 // Ignore all stale data if buffer clear doesn't work
                 if (startTimeDelta < 0.1) {
                     state = AcquisitionState::acquiring;
-                } else if (startTries < 100) {
+                } else if (startTries < 150) {
                     this->flushNEUNET();
                     this->realignTCP();
                     startTries++;
                 } else {
                     this->disconnect(this->pasynUserSelf);
                     this->connect(this->pasynUserSelf);
+                    startTries = 0;
                 }
             } else if (acquireTime > 0) {
                 double timeDelta = time - startTime;
@@ -712,7 +723,7 @@ void psdPortDriver::readEventLoop() {
         } break;
         }
 
-#if PRINT_EVENTS
+#if 1
         const char *eventTypeStr;
         char eventDescrStr[256] = {0};
         char hexStr[32] = {0};
@@ -753,7 +764,7 @@ void psdPortDriver::readEventLoop() {
         } break;
         }
 
-        printf("%-20s %-40s (%s)\n", eventTypeStr, eventDescrStr, hexStr);
+        asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER, "%-20s %-40s (%s)\n", eventTypeStr, eventDescrStr, hexStr);
 #endif
     }
 }

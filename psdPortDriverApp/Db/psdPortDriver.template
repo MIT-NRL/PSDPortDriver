@@ -1,4 +1,24 @@
 ################################################################
+# These records control connected/disconnected                 #
+################################################################
+record(bo, "$(P)$(R)Connect") {
+  field(DTYP, "asynInt32")
+  field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))CONNECT")
+  field(ZNAM, "Disconnect")
+  field(ONAM, "Connect")
+}
+
+record(bi, "$(P)$(R)Connect_RBV") {
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))CONNECT")
+  field(ZNAM, "Disconnected")
+  field(ZSV, "MINOR")
+  field(ONAM, "Connected")
+  field(OSV, "NO_ALARM")
+  field(SCAN, "I/O Intr")
+}
+
+################################################################
 # These records control run/stop                               #
 ################################################################
 record(bo, "$(P)$(R)Acquire") {

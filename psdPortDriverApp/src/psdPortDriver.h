@@ -20,6 +20,7 @@
 #define P_TotalCountsString     "TOTAL_COUNTS"      /* asynInt64Array, r/o */
 #define P_LiveCountsString      "LIVE_COUNTS"       /* asynInt32Array, r/o */
 #define P_LiveTotalCountsString "LIVE_TOTAL_COUNTS" /* asynInt64Array, r/o */
+#define P_ConnectString         "CONNECT"           /* asynInt32,      r/w */
 
 class psdPortDriver : public asynPortDriver {
 public:
@@ -46,6 +47,7 @@ protected:
     int P_TotalCounts;
     int P_LiveCounts;
     int P_LiveTotalCounts;
+    int P_Connect;
 
 private:
     // Data
