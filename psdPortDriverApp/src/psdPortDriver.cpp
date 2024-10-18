@@ -286,12 +286,26 @@ asynStatus psdPortDriver::connect(asynUser *pasynUser) {
         return asynError;
     }
 
-    // // Set socket timeout for recv
-    // struct timeval tv;
-    // tv.tv_sec = 1;
-    // tv.tv_usec = 0;
-    // setsockopt(tcpSocket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv,
-    //            sizeof tv);
+    // Set socket timeout for recv
+    struct timeval timeout;
+    timeout.tv_sec = 1;
+    timeout.tv_usec = 0;
+    if (setsockopt(tcpSocket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout,
+               sizeof timeout) == -1) {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+                  "%s::%s error setting socket timeout\n", driverName, __func__);
+        this->freeNetworking();
+        return asynError;
+    }
+
+    // Set socket timeout for udp recv
+    if (setsockopt(udpSocket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout,
+               sizeof timeout) == -1) {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+                  "%s::%s error setting socket timeout\n", driverName, __func__);
+        this->freeNetworking();
+        return asynError;
+    }
 
     isConnected = true;
 
@@ -405,6 +419,12 @@ int psdPortDriver::sendNEUNET(uint32_t address, const char *data,
     // Get Response
     char buf[256 + sizeof(UDPMessageHeader)];
     int readBytes = recv(this->udpSocket, buf, sizeof(buf), 0);
+
+    if (readBytes == -1) {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+                  "%s::%s error: udp receiving timeout\n", driverName, __func__);
+        return -1;
+    }
 
     if (readBytes < (int)sizeof(UDPMessageHeader)) {
         return -1;
@@ -691,7 +711,7 @@ void psdPortDriver::readEventLoop() {
                 // Ignore all stale data if buffer clear doesn't work
                 if (startTimeDelta < 0.1) {
                     state = AcquisitionState::acquiring;
-                } else if (startTries < 150) {
+                } else if (startTries < 100) {
                     this->flushNEUNET();
                     this->realignTCP();
                     startTries++;
