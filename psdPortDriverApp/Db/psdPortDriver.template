@@ -19,6 +19,24 @@ record(bi, "$(P)$(R)Connect_RBV") {
 }
 
 ################################################################
+# These records control the mode of the detector                #
+################################################################
+record(bo, "$(P)$(R)Mode") {
+  field(DTYP, "asynInt32")
+  field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))MODE")
+  field(ZNAM, "Position dist")
+  field(ONAM, "Pulse height dist")
+}
+
+record(bi, "$(P)$(R)Mode_RBV") {
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))MODE")
+  field(ZNAM, "Position dist")
+  field(ONAM, "Pulse height dist")
+  field(SCAN, "I/O Intr")
+}
+
+################################################################
 # These records control run/stop                               #
 ################################################################
 record(bo, "$(P)$(R)Acquire") {

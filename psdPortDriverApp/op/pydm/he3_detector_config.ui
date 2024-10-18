@@ -6,29 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>356</width>
-    <height>335</height>
+    <width>354</width>
+    <height>409</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_3">
-   <property name="spacing">
-    <number>1</number>
-   </property>
-   <property name="leftMargin">
-    <number>6</number>
-   </property>
-   <property name="topMargin">
-    <number>0</number>
-   </property>
-   <property name="rightMargin">
-    <number>6</number>
-   </property>
-   <property name="bottomMargin">
-    <number>0</number>
-   </property>
    <item>
     <widget class="PyDMLabel" name="PyDMLabel">
      <property name="maximumSize">
@@ -324,6 +309,18 @@
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
          <widget class="PyDMLabel" name="PyDMLabel_6">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>85</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="toolTip">
            <string/>
           </property>
@@ -372,6 +369,101 @@ background-color: rgb(115, 223, 255)</string>
           </property>
           <property name="pressValue" stdset="0">
            <string>0</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_10">
+        <item>
+         <widget class="PyDMLabel" name="PyDMLabel_11">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>85</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string/>
+          </property>
+          <property name="text">
+           <string>Mode</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="PyDMEnumButton" name="PyDMEnumButton">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>210</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>ca://${P}${R}Mode</string>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">PyDMEnumButton{
+  color: rgb(0, 0, 0);
+  background-color: rgb(115, 223, 255);
+  }
+QPushButton {
+  color: rgb(0, 0, 0);
+  background-color: rgb(115, 223, 255);
+  }
+QRadioButton {
+  color: rgb(0, 0, 0);
+  background-color: rgb(115, 223, 255);
+  }</string>
+          </property>
+          <property name="channel" stdset="0">
+           <string>ca://${P}${R}Mode</string>
+          </property>
+          <property name="widgetType" stdset="0">
+           <enum>PyDMEnumButton::PushButton</enum>
+          </property>
+          <property name="orientation" stdset="0">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="marginTop" stdset="0">
+           <number>0</number>
+          </property>
+          <property name="marginBottom" stdset="0">
+           <number>0</number>
+          </property>
+          <property name="marginLeft" stdset="0">
+           <number>0</number>
+          </property>
+          <property name="marginRight" stdset="0">
+           <number>0</number>
+          </property>
+          <property name="horizontalSpacing" stdset="0">
+           <number>5</number>
+          </property>
+          <property name="verticalSpacing" stdset="0">
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -448,6 +540,18 @@ background-color: rgb(115, 223, 255)</string>
        <layout class="QHBoxLayout" name="horizontalLayout_5">
         <item>
          <widget class="PyDMLabel" name="PyDMLabel_9">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>85</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="toolTip">
            <string/>
           </property>
@@ -503,6 +607,18 @@ background-color: rgb(115, 223, 255)</string>
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <item>
          <widget class="PyDMLabel" name="PyDMLabel_15">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>85</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="toolTip">
            <string/>
           </property>
@@ -720,6 +836,18 @@ background-color: rgb(115, 223, 255)</string>
        <layout class="QHBoxLayout" name="horizontalLayout_7">
         <item>
          <widget class="PyDMLabel" name="PyDMLabel_16">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>85</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="toolTip">
            <string/>
           </property>
@@ -783,6 +911,11 @@ background-color: rgb(115, 223, 255)</string>
    <class>PyDMLabel</class>
    <extends>QLabel</extends>
    <header>pydm.widgets.label</header>
+  </customwidget>
+  <customwidget>
+   <class>PyDMEnumButton</class>
+   <extends>QWidget</extends>
+   <header>pydm.widgets.enum_button</header>
   </customwidget>
   <customwidget>
    <class>PyDMFrame</class>

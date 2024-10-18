@@ -21,6 +21,7 @@
 #define P_LiveCountsString      "LIVE_COUNTS"       /* asynInt32Array, r/o */
 #define P_LiveTotalCountsString "LIVE_TOTAL_COUNTS" /* asynInt64Array, r/o */
 #define P_ConnectString         "CONNECT"           /* asynInt32,      r/w */
+#define P_ModeString            "MODE"              /* asynBool,       r/w */
 
 class psdPortDriver : public asynPortDriver {
 public:
@@ -48,6 +49,7 @@ protected:
     int P_LiveCounts;
     int P_LiveTotalCounts;
     int P_Connect;
+    int P_Mode;
 
 private:
     // Data
@@ -82,6 +84,7 @@ private:
 
 typedef struct {
     float position;
+    int pulseHeight;
     int detector;
     int triggerOffset; // Measured in 25ns
 } NeutronData;

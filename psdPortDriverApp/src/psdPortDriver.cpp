@@ -36,6 +36,7 @@
 #define PRINT_EVENTS 0
 
 static const char *driverName = "psdPortDriver";
+static const char *driverVersion = "0.2.0";
 
 void threadReadEventLoop(void *drvPtr) {
     psdPortDriver *drv = (psdPortDriver *)drvPtr;
@@ -89,6 +90,7 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
     createParam(P_LiveTotalCountsString, asynParamInt64Array,
                 &P_LiveTotalCounts);
     createParam(P_ConnectString, asynParamInt32, &P_Connect);
+    createParam(P_ModeString, asynParamInt32, &P_Mode);
 
     // Create the thread that runs the read event loop
     asynStatus status =
@@ -558,11 +560,16 @@ enum class TCPEventType {
     instrumentTime32 = 0x6c,
 };
 
+#define POSITION_DIST_MODE 0
+#define PULSE_HEIGHT_MODE 1
+
 void psdPortDriver::readEventLoop() {
     enum class AcquisitionState { stopped, starting, acquiring, stopping };
 
     AcquisitionState state = AcquisitionState::stopped;
     double acquireTime;
+    int mode;
+    double normValue;
     int numBins;
     epicsTime startTime;
 
@@ -610,6 +617,7 @@ void psdPortDriver::readEventLoop() {
             // Read parameters
             getDoubleParam(P_AcquireTime, &acquireTime);
             getIntegerParam(P_NumBins, &numBins);
+            getIntegerParam(P_Mode, &mode);
         } break;
 
         case AcquisitionState::starting:
@@ -650,11 +658,11 @@ void psdPortDriver::readEventLoop() {
         }
 
         this->unlock();
-        // TODO: Add some kind of timeout...
+        // TODO: Add some kind of timeout..
         int readBytes = readEvent(eventBuffer);
         this->lock();
 
-        if (readBytes == 0) {
+        if (readBytes == 0 || readBytes == -1) {
             // Reading zero bytes means the TCP connections is closed
             printf("TCP Disconnected! Trying to reconnect once...\n");
             notConnectedHandler();
@@ -683,7 +691,24 @@ void psdPortDriver::readEventLoop() {
             if (std::isnan(n.position))
                 break;
 
-            int binIndex = static_cast<int>(std::floor(n.position * numBins));
+            if (mode == POSITION_DIST_MODE){
+                normValue = n.position;
+            }
+            else if (mode == PULSE_HEIGHT_MODE){
+                normValue = (double)n.pulseHeight / (2.0 * 16384.0);
+            }
+            else {
+                asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+                          "%s::%s error: invalid mode, reverting to position distribution.\n", driverName, __func__);
+                normValue = n.position;
+                mode = POSITION_DIST_MODE;
+                setIntegerParam(P_Mode, mode);
+            }
+            
+            // double normValue = (double)n.pulseHeight / (2.0 * 16384.0);
+            // printf("n.pulseHeight = %d, normValue = %f\n", n.pulseHeight, normValue);
+
+            int binIndex = static_cast<int>(std::floor(normValue * numBins));
             int offset = numBins * n.detector;
 
             if (binIndex < 0) {
@@ -906,6 +931,7 @@ PSDEventData parseEventData(char *buf) {
         float pulseL = (float)event.neutronData12.pl;
         float pulseH = pulseR + pulseL;
 
+        // printf("Pulse R: %f  Pulse L: %f Pulse H: %f Detector: %d", pulseR, pulseL, pulseH, detector);
         float position;
         if (pulseH != 0) {
             position = pulseL / pulseH;
@@ -915,6 +941,7 @@ PSDEventData parseEventData(char *buf) {
 
         NeutronData neutron = {
             .position = position,
+            .pulseHeight = pulseH,
             .detector = detector,
             .triggerOffset = tof,
         };
@@ -930,6 +957,9 @@ PSDEventData parseEventData(char *buf) {
         float pulseL = (float)event.neutronData14.pl;
         float pulseH = pulseR + pulseL;
 
+        // if (detector == 0){
+        //     printf("Pulse R: %f  Pulse L: %f Pulse H: %f Detector: %d\n", pulseR, pulseL, pulseH, detector);
+        // }
         float position;
         if (pulseH != 0) {
             position = pulseL / pulseH;
@@ -939,6 +969,7 @@ PSDEventData parseEventData(char *buf) {
 
         NeutronData neutron = {
             .position = position,
+            .pulseHeight = pulseH,
             .detector = detector,
             .triggerOffset = tof,
         };
