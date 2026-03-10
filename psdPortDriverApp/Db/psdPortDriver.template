@@ -75,6 +75,13 @@ record(ai, "$(P)$(R)AcquireTime_RBV") {
   field(SCAN, "I/O Intr")
 }
 
+record(ai, "$(P)$(R)AcquireTimeRemaining_RBV") {
+  field(DTYP, "asynFloat64")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))ACQ_TIME_REMAINING")
+  field(PREC, "3")
+  field(SCAN, "I/O Intr")
+}
+
 ###################################################################
 #  Number of bins to use                                          #
 ###################################################################
@@ -92,6 +99,60 @@ record(longout, "$(P)$(R)NBins") {
 record(longin, "$(P)$(R)NBins_RBV") {
   field(DTYP, "asynInt32")
   field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))NUM_BINS")
+  field(SCAN, "I/O Intr")
+}
+
+###################################################################
+#  Set the software low and high level discriminator for the pulse height  #
+###################################################################
+record(longout, "$(P)$(R)SoftLLD") {
+  field(PINI, "YES")
+  field(DTYP, "asynInt32")
+  field(OUT, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))SOFT_LLD")
+  field(VAL, "0")
+  field(LOPR, "0")
+  field(DRVL, "0")
+  #field(HOPR, "4096")
+  #field(DRVH, "4096")
+}
+
+record(longin, "$(P)$(R)SoftLLD_RBV") {
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))SOFT_LLD")
+  field(SCAN, "I/O Intr")
+}
+
+record(longout, "$(P)$(R)HardLLD") {
+  field(PINI, "YES")
+  field(DTYP, "asynInt32")
+  field(OUT, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))Hard_LLD")
+  field(VAL, "0")
+  field(LOPR, "0")
+  field(DRVL, "0")
+  #field(HOPR, "4096")
+  #field(DRVH, "4096")
+}
+
+record(longin, "$(P)$(R)HardLLD_RBV") {
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))Hard_LLD")
+  field(SCAN, "I/O Intr")
+}
+
+record(longout, "$(P)$(R)SoftHLD") {
+  field(PINI, "YES")
+  field(DTYP, "asynInt32")
+  field(OUT, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))SOFT_HLD")
+  field(VAL, "16384")
+  field(LOPR, "0")
+  field(DRVL, "0")
+  #field(HOPR, "16384")
+  #field(DRVH, "16384")
+}
+
+record(longin, "$(P)$(R)SoftHLD_RBV") {
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))SOFT_HLD")
   field(SCAN, "I/O Intr")
 }
 

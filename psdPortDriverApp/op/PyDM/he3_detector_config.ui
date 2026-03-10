@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>354</width>
-    <height>409</height>
+    <height>488</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -52,7 +52,7 @@
      <property name="lineWidth">
       <number>1</number>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
+     <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
@@ -483,7 +483,7 @@ QRadioButton {
      <property name="lineWidth">
       <number>1</number>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
+     <layout class="QVBoxLayout" name="verticalLayout">
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
@@ -514,7 +514,7 @@ QRadioButton {
            <string notr="true">background-color: rgb(218, 218, 218);</string>
           </property>
           <property name="text">
-           <string>Collect</string>
+           <string>Collection Settings</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
@@ -665,6 +665,207 @@ QRadioButton {
           </property>
           <property name="channel" stdset="0">
            <string>ca://${P}he3PSD:NBins_RBV</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_14">
+        <item>
+         <widget class="PyDMLabel" name="PyDMLabel_25">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>85</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string/>
+          </property>
+          <property name="text">
+           <string>hard LLD</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="PyDMLineEdit" name="PyDMLineEdit_7">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="toolTip">
+           <string>ca://${P}he3PSD:HardLLD</string>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">  color: rgb(0, 0, 0);
+  background-color: rgb(115, 223, 255);
+  border: 1px solid black;
+  margin: 0px;
+  padding: 0px;
+  spacing: 0px;</string>
+          </property>
+          <property name="channel" stdset="0">
+           <string>ca://${P}he3PSD:HardLLD</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="PyDMLabel" name="PyDMLabel_26">
+          <property name="toolTip">
+           <string>ca://${P}he3PSD:HardLLD_RBV</string>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">  color: rgb(10, 0, 184);
+  background-color: rgb(187, 187, 187);</string>
+          </property>
+          <property name="channel" stdset="0">
+           <string>ca://${P}he3PSD:HardLLD_RBV</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_12">
+        <item>
+         <widget class="PyDMLabel" name="PyDMLabel_21">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>85</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string/>
+          </property>
+          <property name="text">
+           <string>soft LLD</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="PyDMLineEdit" name="PyDMLineEdit_5">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="toolTip">
+           <string>ca://${P}he3PSD:SoftLLD</string>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">  color: rgb(0, 0, 0);
+  background-color: rgb(115, 223, 255);
+  border: 1px solid black;
+  margin: 0px;
+  padding: 0px;
+  spacing: 0px;</string>
+          </property>
+          <property name="channel" stdset="0">
+           <string>ca://${P}he3PSD:SoftLLD</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="PyDMLabel" name="PyDMLabel_22">
+          <property name="toolTip">
+           <string>ca://${P}he3PSD:SoftLLD_RBV</string>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">  color: rgb(10, 0, 184);
+  background-color: rgb(187, 187, 187);</string>
+          </property>
+          <property name="channel" stdset="0">
+           <string>ca://${P}he3PSD:SoftLLD_RBV</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_11">
+        <item>
+         <widget class="PyDMLabel" name="PyDMLabel_19">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>85</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string/>
+          </property>
+          <property name="text">
+           <string>soft HLD</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="PyDMLineEdit" name="PyDMLineEdit_4">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="toolTip">
+           <string>ca://${P}he3PSD:SoftHLD</string>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">  color: rgb(0, 0, 0);
+  background-color: rgb(115, 223, 255);
+  border: 1px solid black;
+  margin: 0px;
+  padding: 0px;
+  spacing: 0px;</string>
+          </property>
+          <property name="channel" stdset="0">
+           <string>ca://${P}he3PSD:SoftHLD</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="PyDMLabel" name="PyDMLabel_20">
+          <property name="toolTip">
+           <string>ca://${P}he3PSD:SoftHLD_RBV</string>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">  color: rgb(10, 0, 184);
+  background-color: rgb(187, 187, 187);</string>
+          </property>
+          <property name="channel" stdset="0">
+           <string>ca://${P}he3PSD:SoftHLD_RBV</string>
           </property>
          </widget>
         </item>

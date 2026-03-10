@@ -3,3 +3,6 @@
 $(P)$(R)AcquireTime
 $(P)$(R)NBins
 $(P)$(R)Mode
+$(P)$(R)SoftLLD
+$(P)$(R)SoftHLD
+$(P)$(R)HardLLD

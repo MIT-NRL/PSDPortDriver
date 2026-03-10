@@ -83,7 +83,11 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
 
     createParam(P_AcquireString, asynParamInt32, &P_Acquire);
     createParam(P_AcquireTimeString, asynParamFloat64, &P_AcquireTime);
+    createParam(P_AcquireTimeRemainingString, asynParamFloat64, &P_AcquireTimeRemaining);
     createParam(P_NumBinsString, asynParamInt32, &P_NumBins);
+    createParam(P_SoftLLDString, asynParamInt32, &P_SoftLLD);
+    createParam(P_SoftHLDString, asynParamInt32, &P_SoftHLD);
+    createParam(P_HardLLDString, asynParamInt32, &P_HardLLD);
     createParam(P_CountsString, asynParamInt32Array, &P_Counts);
     createParam(P_TotalCountsString, asynParamInt64Array, &P_TotalCounts);
     createParam(P_LiveCountsString, asynParamInt32Array, &P_LiveCounts);
@@ -122,6 +126,7 @@ psdPortDriver::~psdPortDriver() {
 asynStatus psdPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
+    int statusInt = 0;
 
     // Fetch the parameter string name for possible use in debugging
     const char *paramName;
@@ -147,7 +152,20 @@ asynStatus psdPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
         } else {
             status = this->disconnect(pasynUser);
         }
-    }   
+    } else if (function == P_HardLLD){
+        // Check if acquiring and wait until complete
+        if (acquiring) {
+            this->unlock();
+            // wait if acquiring
+            // epicsThreadSleep(0.1);
+            this->lock();
+        }
+        statusInt = this->setHardLLD(value);
+        if (statusInt < 0) {
+            status = asynError;
+        }
+
+    }
     else {
         /* All other parameters just get set in parameter list, no need to
          * act on them here */
@@ -459,6 +477,7 @@ int psdPortDriver::sendNEUNET(uint32_t address, const char *data,
 #define NEUNET_ADDR_STATUS_LO  0x189
 #define NEUNET_ADDR_RESOLUTION 0x1B4
 #define NEUNET_ADDR_MODE       0x1B5
+#define NEUNET_ADDR_DISCRIM    0x198
 
 /** Set up all the necessary NEUNET registers for operation */
 int psdPortDriver::setup() {
@@ -490,6 +509,11 @@ int psdPortDriver::setup() {
     status |= this->sendNEUNET(NEUNET_ADDR_RESOLUTION, (char *)resolution14Bit,
                                sizeof(resolution14Bit), NULL, 0);
 
+    // // Set discriminator threshold (LLD, TMH, THL)
+    // const unsigned char discriminatorThreshold[] = {0x03,0xe8,0xff,0xff,0xff,0xff,0xff,0xff};
+    // status |= this->sendNEUNET(NEUNET_ADDR_DISCRIM, (char *)discriminatorThreshold,
+    //                            sizeof(discriminatorThreshold), NULL, 0);
+
     // Switch to oneway mode (disable handshake)
     const unsigned char oneWayMode[] = {0x80};
     status |= this->sendNEUNET(NEUNET_ADDR_MODE, (char *)oneWayMode,
@@ -500,6 +524,46 @@ int psdPortDriver::setup() {
     }
 
     return 0;
+}
+
+int psdPortDriver::setHardLLD(int lldValue){
+
+    int status = 0;
+
+    // disable event mode
+    const unsigned char eventModeOff[] = {0x00,0x80};
+    status |= this->sendNEUNET(0x186, (char *)eventModeOff,
+                               sizeof(eventModeOff), NULL, 0);
+
+    // Set discriminator threshold (LLD, TMH, THL)
+    // convert lldValue to 2 bytes
+    unsigned char lldValueBytes[2];
+    lldValueBytes[0] = (lldValue & 0xFF00) >> 8;
+    lldValueBytes[1] = lldValue & 0x00FF;
+    const unsigned char discriminatorThreshold[] = {0x03,0xe8,0xff,0xff,0xff,0xff,0xff,0xff};
+    status |= this->sendNEUNET(NEUNET_ADDR_DISCRIM, (char *)discriminatorThreshold,
+                               sizeof(discriminatorThreshold), NULL, 0);
+
+    // enable event mode
+    const unsigned char eventModeOn[] = {0x00,0x00};
+    status |= this->sendNEUNET(0x186, (char *)eventModeOn,
+                               sizeof(eventModeOn), NULL, 0);
+
+    // readback discriminator threshold
+    char readBuf[2];
+    status |= this->sendNEUNET(NEUNET_ADDR_DISCRIM, NULL, 0, readBuf, sizeof(readBuf));
+    // convert readBuf to int
+    printf("readBuf[0]: %d\n", readBuf[0]);
+    int readValue = (readBuf[0] << 8) | readBuf[1];
+    printf("LLD Value: %d\n", readValue);
+    setIntegerParam(P_HardLLD, readValue);
+
+    if (status < 0) {
+        return -1;
+    }
+
+    return 0;
+
 }
 
 /** Resets NEUNET registers */
@@ -568,9 +632,12 @@ void psdPortDriver::readEventLoop() {
 
     AcquisitionState state = AcquisitionState::stopped;
     double acquireTime;
+    double timeRemaining;
     int mode;
     double normValue;
     int numBins;
+    int softLLD;
+    int softHLD;
     epicsTime startTime;
 
     int status = asynSuccess;
@@ -618,6 +685,8 @@ void psdPortDriver::readEventLoop() {
             getDoubleParam(P_AcquireTime, &acquireTime);
             getIntegerParam(P_NumBins, &numBins);
             getIntegerParam(P_Mode, &mode);
+            getIntegerParam(P_SoftLLD, &softLLD);
+            getIntegerParam(P_SoftHLD, &softHLD);
         } break;
 
         case AcquisitionState::starting:
@@ -631,6 +700,8 @@ void psdPortDriver::readEventLoop() {
         } break;
 
         case AcquisitionState::stopping: {
+            timeRemaining = 0;
+
             // Notify EPICS of new counts data
             size_t countsSize = numBins * PSD_NUM_DETECTORS;
             doCallbacksInt64Array(this->totalCounts_.data(),
@@ -646,6 +717,7 @@ void psdPortDriver::readEventLoop() {
 
             // Set acquire back to done after the other PV have been updated
             setIntegerParam(P_Acquire, 0);
+            setDoubleParam(P_AcquireTimeRemaining, timeRemaining);
             callParamCallbacks();
             state = AcquisitionState::stopped;
             goto loopStart;
@@ -704,6 +776,11 @@ void psdPortDriver::readEventLoop() {
                 mode = POSITION_DIST_MODE;
                 setIntegerParam(P_Mode, mode);
             }
+
+            // Set pulse height discriminator (software LLD)
+            if ((n.pulseHeight < softLLD) || (n.pulseHeight > softHLD)) {
+                continue;
+            }
             
             // double normValue = (double)n.pulseHeight / (2.0 * 16384.0);
             // printf("n.pulseHeight = %d, normValue = %f\n", n.pulseHeight, normValue);
@@ -747,6 +824,8 @@ void psdPortDriver::readEventLoop() {
                 }
             } else if (acquireTime > 0) {
                 double timeDelta = time - startTime;
+                timeRemaining = acquireTime - timeDelta;
+                setDoubleParam(P_AcquireTimeRemaining, timeRemaining);
                 if (timeDelta >= acquireTime) {
                     state = AcquisitionState::stopping;
                 }

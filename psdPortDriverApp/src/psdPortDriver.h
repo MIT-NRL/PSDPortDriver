@@ -15,7 +15,11 @@
  * They are used by asyn clients, including standard asyn device support */
 #define P_AcquireString         "ACQUIRE"           /* asynInt32,      r/w */
 #define P_AcquireTimeString     "ACQ_TIME"          /* asynFloat64,    r/w */
+#define P_AcquireTimeRemainingString "ACQ_TIME_REMAINING" /* asynFloat64, r/o */
 #define P_NumBinsString         "NUM_BINS"          /* asynInt32,      r/w */
+#define P_SoftLLDString         "SOFT_LLD"          /* asynInt32,      r/w */
+#define P_SoftHLDString         "SOFT_HLD"          /* asynInt32,      r/w */
+#define P_HardLLDString         "Hard_LLD"          /* asynInt32,      r/w */
 #define P_CountsString          "COUNTS"            /* asynInt32Array, r/o */
 #define P_TotalCountsString     "TOTAL_COUNTS"      /* asynInt64Array, r/o */
 #define P_LiveCountsString      "LIVE_COUNTS"       /* asynInt32Array, r/o */
@@ -43,7 +47,11 @@ protected:
      * library. */
     int P_Acquire;
     int P_AcquireTime;
+    int P_AcquireTimeRemaining;
     int P_NumBins;
+    int P_SoftLLD;
+    int P_SoftHLD;
+    int P_HardLLD;
     int P_Counts;
     int P_TotalCounts;
     int P_LiveCounts;
@@ -77,6 +85,7 @@ private:
     int setup();
     int teardown();
     void flushNEUNET();
+    int setHardLLD(int lldValue);
 
     int readEvent(char *buf);
     void realignTCP();
