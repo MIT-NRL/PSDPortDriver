@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>354</width>
-    <height>488</height>
+    <height>466</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -572,7 +572,7 @@ QRadioButton {
            </sizepolicy>
           </property>
           <property name="toolTip">
-           <string>ca://${P}he3PSD:AcquireTime</string>
+           <string>ca://${P}${R}AcquireTime</string>
           </property>
           <property name="styleSheet">
            <string notr="true">  color: rgb(0, 0, 0);
@@ -583,21 +583,21 @@ QRadioButton {
   spacing: 0px;</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:AcquireTime</string>
+           <string>ca://${P}${R}AcquireTime</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="PyDMLabel" name="PyDMLabel_10">
           <property name="toolTip">
-           <string>ca://${P}he3PSD:AcquireTime_RBV</string>
+           <string>ca://${P}${R}AcquireTime_RBV</string>
           </property>
           <property name="styleSheet">
            <string notr="true">  color: rgb(10, 0, 184);
   background-color: rgb(187, 187, 187);</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:AcquireTime_RBV</string>
+           <string>ca://${P}${R}AcquireTime_RBV</string>
           </property>
          </widget>
         </item>
