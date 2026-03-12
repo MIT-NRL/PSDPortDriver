@@ -639,7 +639,7 @@ QRadioButton {
            </sizepolicy>
           </property>
           <property name="toolTip">
-           <string>ca://${P}he3PSD:NBins</string>
+           <string>ca://${P}${R}NBins</string>
           </property>
           <property name="styleSheet">
            <string notr="true">  color: rgb(0, 0, 0);
@@ -650,21 +650,21 @@ QRadioButton {
   spacing: 0px;</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:NBins</string>
+           <string>ca://${P}${R}NBins</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="PyDMLabel" name="PyDMLabel_14">
           <property name="toolTip">
-           <string>ca://${P}he3PSD:NBins_RBV</string>
+           <string>ca://${P}${R}NBins_RBV</string>
           </property>
           <property name="styleSheet">
            <string notr="true">  color: rgb(10, 0, 184);
   background-color: rgb(187, 187, 187);</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:NBins_RBV</string>
+           <string>ca://${P}${R}NBins_RBV</string>
           </property>
          </widget>
         </item>
@@ -706,7 +706,7 @@ QRadioButton {
            </sizepolicy>
           </property>
           <property name="toolTip">
-           <string>ca://${P}he3PSD:HardLLD</string>
+           <string>ca://${P}${R}HardLLD</string>
           </property>
           <property name="styleSheet">
            <string notr="true">  color: rgb(0, 0, 0);
@@ -717,21 +717,21 @@ QRadioButton {
   spacing: 0px;</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:HardLLD</string>
+           <string>ca://${P}${R}HardLLD</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="PyDMLabel" name="PyDMLabel_26">
           <property name="toolTip">
-           <string>ca://${P}he3PSD:HardLLD_RBV</string>
+           <string>ca://${P}${R}HardLLD_RBV</string>
           </property>
           <property name="styleSheet">
            <string notr="true">  color: rgb(10, 0, 184);
   background-color: rgb(187, 187, 187);</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:HardLLD_RBV</string>
+           <string>ca://${P}${R}HardLLD_RBV</string>
           </property>
          </widget>
         </item>
@@ -773,7 +773,7 @@ QRadioButton {
            </sizepolicy>
           </property>
           <property name="toolTip">
-           <string>ca://${P}he3PSD:SoftLLD</string>
+           <string>ca://${P}${R}SoftLLD</string>
           </property>
           <property name="styleSheet">
            <string notr="true">  color: rgb(0, 0, 0);
@@ -784,21 +784,21 @@ QRadioButton {
   spacing: 0px;</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:SoftLLD</string>
+           <string>ca://${P}${R}SoftLLD</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="PyDMLabel" name="PyDMLabel_22">
           <property name="toolTip">
-           <string>ca://${P}he3PSD:SoftLLD_RBV</string>
+           <string>ca://${P}${R}SoftLLD_RBV</string>
           </property>
           <property name="styleSheet">
            <string notr="true">  color: rgb(10, 0, 184);
   background-color: rgb(187, 187, 187);</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:SoftLLD_RBV</string>
+           <string>ca://${P}${R}SoftLLD_RBV</string>
           </property>
          </widget>
         </item>
@@ -840,7 +840,7 @@ QRadioButton {
            </sizepolicy>
           </property>
           <property name="toolTip">
-           <string>ca://${P}he3PSD:SoftHLD</string>
+           <string>ca://${P}${R}SoftHLD</string>
           </property>
           <property name="styleSheet">
            <string notr="true">  color: rgb(0, 0, 0);
@@ -851,21 +851,21 @@ QRadioButton {
   spacing: 0px;</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:SoftHLD</string>
+           <string>ca://${P}${R}SoftHLD</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="PyDMLabel" name="PyDMLabel_20">
           <property name="toolTip">
-           <string>ca://${P}he3PSD:SoftHLD_RBV</string>
+           <string>ca://${P}${R}SoftHLD_RBV</string>
           </property>
           <property name="styleSheet">
            <string notr="true">  color: rgb(10, 0, 184);
   background-color: rgb(187, 187, 187);</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:SoftHLD_RBV</string>
+           <string>ca://${P}${R}SoftHLD_RBV</string>
           </property>
          </widget>
         </item>
@@ -1063,7 +1063,7 @@ QRadioButton {
         <item>
          <widget class="PyDMPushButton" name="PyDMPushButton_4">
           <property name="toolTip">
-           <string>ca://${P}he3PSD:Acquire</string>
+           <string>ca://${P}${R}Acquire</string>
           </property>
           <property name="styleSheet">
            <string notr="true">color: rgb(0, 0, 0);
@@ -1073,7 +1073,7 @@ background-color: rgb(115, 223, 255)</string>
            <string>Start</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:Acquire</string>
+           <string>ca://${P}${R}Acquire</string>
           </property>
           <property name="pressValue" stdset="0">
            <string>1</string>
@@ -1083,7 +1083,7 @@ background-color: rgb(115, 223, 255)</string>
         <item>
          <widget class="PyDMPushButton" name="PyDMPushButton_3">
           <property name="toolTip">
-           <string>ca://${P}he3PSD:Acquire</string>
+           <string>ca://${P}${R}Acquire</string>
           </property>
           <property name="styleSheet">
            <string notr="true">color: rgb(0, 0, 0);
@@ -1093,7 +1093,7 @@ background-color: rgb(115, 223, 255)</string>
            <string>Stop</string>
           </property>
           <property name="channel" stdset="0">
-           <string>ca://${P}he3PSD:Acquire</string>
+           <string>ca://${P}${R}Acquire</string>
           </property>
           <property name="pressValue" stdset="0">
            <string>0</string>

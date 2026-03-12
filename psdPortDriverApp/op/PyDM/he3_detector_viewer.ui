@@ -83,14 +83,14 @@
         <string/>
        </property>
        <property name="whatsThis">
-        <string>ca://${P}${R}:Det${DN}:LiveTotalCounts_RBV</string>
+        <string>ca://${P}${R}Det${DN}:LiveTotalCounts_RBV</string>
        </property>
        <property name="styleSheet">
         <string notr="true">  color: rgb(10, 0, 184);
   background-color: rgb(187, 187, 187);</string>
        </property>
        <property name="channel" stdset="0">
-        <string>ca://${P}${R}:Det${DN}:LiveTotalCounts</string>
+        <string>ca://${P}${R}Det${DN}:LiveTotalCounts</string>
        </property>
       </widget>
      </item>
@@ -139,7 +139,7 @@
      </property>
      <property name="curves">
       <stringlist>
-       <string>{&quot;y_channel&quot;: &quot;ca://${P}${R}:Det${DN}:LiveCounts&quot;, &quot;x_channel&quot;: null, &quot;plot_style&quot;: &quot;Line&quot;, &quot;name&quot;: &quot;&quot;, &quot;color&quot;: &quot;black&quot;, &quot;lineStyle&quot;: 1, &quot;lineWidth&quot;: 1, &quot;symbol&quot;: &quot;o&quot;, &quot;symbolSize&quot;: 5, &quot;yAxisName&quot;: &quot;Counts&quot;, &quot;barWidth&quot;: null, &quot;upperThreshold&quot;: null, &quot;lowerThreshold&quot;: null, &quot;thresholdColor&quot;: &quot;white&quot;, &quot;redraw_mode&quot;: 2}</string>
+       <string>{&quot;y_channel&quot;: &quot;ca://${P}${R}Det${DN}:LiveCounts&quot;, &quot;x_channel&quot;: null, &quot;plot_style&quot;: &quot;Line&quot;, &quot;name&quot;: &quot;&quot;, &quot;color&quot;: &quot;black&quot;, &quot;lineStyle&quot;: 1, &quot;lineWidth&quot;: 1, &quot;symbol&quot;: &quot;o&quot;, &quot;symbolSize&quot;: 5, &quot;yAxisName&quot;: &quot;Counts&quot;, &quot;barWidth&quot;: null, &quot;upperThreshold&quot;: null, &quot;lowerThreshold&quot;: null, &quot;thresholdColor&quot;: &quot;white&quot;, &quot;redraw_mode&quot;: 2}</string>
       </stringlist>
      </property>
     </widget>
@@ -166,7 +166,7 @@ background-color: rgb(115, 223, 255)</string>
             <bool>true</bool>
            </property>
            <property name="channel" stdset="0">
-            <string>ca://${P}${R}:Acquire</string>
+            <string>ca://${P}${R}Acquire</string>
            </property>
            <property name="pressValue" stdset="0">
             <string>1</string>
@@ -189,7 +189,7 @@ background-color: rgb(115, 223, 255)</string>
             <bool>true</bool>
            </property>
            <property name="channel" stdset="0">
-            <string>ca://${P}${R}:Acquire</string>
+            <string>ca://${P}${R}Acquire</string>
            </property>
            <property name="pressValue" stdset="0">
             <string>0</string>
@@ -225,7 +225,7 @@ background-color: rgb(115, 223, 255)</string>
           <bool>false</bool>
          </property>
          <property name="channel" stdset="0">
-          <string>ca://${P}${R}:Acquire_RBV</string>
+          <string>ca://${P}${R}Acquire_RBV</string>
          </property>
          <property name="showLabels" stdset="0">
           <bool>false</bool>
@@ -291,7 +291,7 @@ background-color: rgb(115, 223, 255)</string>
   spacing: 0px;</string>
            </property>
            <property name="channel" stdset="0">
-            <string>ca://${P}${R}:AcquireTime</string>
+            <string>ca://${P}${R}AcquireTime</string>
            </property>
           </widget>
          </item>
@@ -314,7 +314,7 @@ background-color: rgb(115, 223, 255)</string>
             <bool>true</bool>
            </property>
            <property name="channel" stdset="0">
-            <string>ca://${P}${R}:AcquireTime_RBV</string>
+            <string>ca://${P}${R}AcquireTime_RBV</string>
            </property>
           </widget>
          </item>
@@ -351,7 +351,7 @@ background-color: rgb(115, 223, 255)</string>
        <item>
         <widget class="PyDMLabel" name="PyDMLabel_8">
          <property name="toolTip">
-          <string>ca://${P}${R}:AcquireTimeRemaining_RBV</string>
+          <string>ca://${P}${R}AcquireTimeRemaining_RBV</string>
          </property>
          <property name="styleSheet">
           <string notr="true">  color: rgb(10, 0, 184);
@@ -361,7 +361,7 @@ background-color: rgb(115, 223, 255)</string>
           <bool>true</bool>
          </property>
          <property name="channel" stdset="0">
-          <string>ca://${P}${R}:AcquireTimeRemaining_RBV</string>
+          <string>ca://${P}${R}AcquireTimeRemaining_RBV</string>
          </property>
         </widget>
        </item>
