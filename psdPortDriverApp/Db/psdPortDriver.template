@@ -37,6 +37,58 @@ record(bi, "$(P)$(R)Mode_RBV") {
 }
 
 ################################################################
+# These records expose a live hex dump of the key control block #
+################################################################
+record(lsi, "$(P)$(R)RegDumpRaw_RBV") {
+  field(DTYP, "asynOctetRead")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))REG_DUMP_RAW")
+  field(SIZV, "256")
+  field(SCAN, "I/O Intr")
+}
+
+record(stringin, "$(P)$(R)RegDumpLine0_RBV") {
+  field(DTYP, "asynOctetRead")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))REG_DUMP_LINE0")
+  field(SCAN, "I/O Intr")
+}
+
+record(stringin, "$(P)$(R)RegDumpLine1_RBV") {
+  field(DTYP, "asynOctetRead")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))REG_DUMP_LINE1")
+  field(SCAN, "I/O Intr")
+}
+
+record(stringin, "$(P)$(R)RegDumpLine2_RBV") {
+  field(DTYP, "asynOctetRead")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))REG_DUMP_LINE2")
+  field(SCAN, "I/O Intr")
+}
+
+record(stringin, "$(P)$(R)RegDumpLine3_RBV") {
+  field(DTYP, "asynOctetRead")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))REG_DUMP_LINE3")
+  field(SCAN, "I/O Intr")
+}
+
+record(stringin, "$(P)$(R)RegDumpLine4_RBV") {
+  field(DTYP, "asynOctetRead")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))REG_DUMP_LINE4")
+  field(SCAN, "I/O Intr")
+}
+
+record(stringin, "$(P)$(R)RegDumpLine5_RBV") {
+  field(DTYP, "asynOctetRead")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))REG_DUMP_LINE5")
+  field(SCAN, "I/O Intr")
+}
+
+record(stringin, "$(P)$(R)RegDumpLine6_RBV") {
+  field(DTYP, "asynOctetRead")
+  field(INP, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))REG_DUMP_LINE6")
+  field(SCAN, "I/O Intr")
+}
+
+################################################################
 # These records control run/stop                               #
 ################################################################
 record(bo, "$(P)$(R)Acquire") {

@@ -26,6 +26,14 @@
 #define P_LiveTotalCountsString "LIVE_TOTAL_COUNTS" /* asynInt64Array, r/o */
 #define P_ConnectString         "CONNECT"           /* asynInt32,      r/w */
 #define P_ModeString            "MODE"              /* asynBool,       r/w */
+#define P_RegDumpRawString      "REG_DUMP_RAW"      /* asynOctet,      r/o */
+#define P_RegDumpLine0String    "REG_DUMP_LINE0"    /* asynOctet,      r/o */
+#define P_RegDumpLine1String    "REG_DUMP_LINE1"    /* asynOctet,      r/o */
+#define P_RegDumpLine2String    "REG_DUMP_LINE2"    /* asynOctet,      r/o */
+#define P_RegDumpLine3String    "REG_DUMP_LINE3"    /* asynOctet,      r/o */
+#define P_RegDumpLine4String    "REG_DUMP_LINE4"    /* asynOctet,      r/o */
+#define P_RegDumpLine5String    "REG_DUMP_LINE5"    /* asynOctet,      r/o */
+#define P_RegDumpLine6String    "REG_DUMP_LINE6"    /* asynOctet,      r/o */
 
 class psdPortDriver : public asynPortDriver {
 public:
@@ -36,11 +44,15 @@ public:
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
     virtual asynStatus readInt32Array(asynUser *pasynUser, epicsInt32 *value,
                                       size_t nElements, size_t *nIn);
+    virtual asynStatus readOctet(asynUser *pasynUser, char *value,
+                                 size_t maxChars, size_t *nActual,
+                                 int *eomReason);
 
     virtual asynStatus connect(asynUser *pasynUser);
     virtual asynStatus disconnect(asynUser *pasynUser);
 
     void readEventLoop();
+    void registerDumpLoop();
 
 protected:
     /** Values used for pasynUser->reason, and indexes into the parameter
@@ -58,6 +70,14 @@ protected:
     int P_LiveTotalCounts;
     int P_Connect;
     int P_Mode;
+    int P_RegDumpRaw;
+    int P_RegDumpLine0;
+    int P_RegDumpLine1;
+    int P_RegDumpLine2;
+    int P_RegDumpLine3;
+    int P_RegDumpLine4;
+    int P_RegDumpLine5;
+    int P_RegDumpLine6;
 
 private:
     // Data
@@ -87,6 +107,8 @@ private:
     int setTransferMode(bool oneWay);
     void flushNEUNET();
     int setHardLLD(int lldValue);
+    void refreshRegisterDumpLocked();
+    void setRegisterDumpDisconnectedLocked();
 
     int readEvent(char *buf);
     void realignTCP();

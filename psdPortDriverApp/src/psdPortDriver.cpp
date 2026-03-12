@@ -37,10 +37,51 @@
 
 static const char *driverName = "psdPortDriver";
 static const char *driverVersion = "0.2.0";
+static constexpr uint32_t kRegisterDumpStart = 0x180;
+static constexpr uint32_t kRegisterDumpEnd = 0x1B5;
+static constexpr size_t kRegisterDumpBytes =
+    kRegisterDumpEnd - kRegisterDumpStart + 1;
+static constexpr size_t kRegisterDumpGroupCount = 7;
+
+static const struct {
+    uint32_t address;
+    size_t size;
+} kRegisterDumpGroups[kRegisterDumpGroupCount] = {
+    {0x180, 8},  // Register usage control area
+    {0x188, 3},  // Status register
+    {0x18B, 5},  // Pulse ID counter
+    {0x190, 7},  // Device time counter
+    {0x198, 8},  // LLD and TOF limit area
+    {0x1A0, 16}, // System area
+    {0x1B0, 6},  // Mode setting
+};
+
+static void formatRegisterBytes(const unsigned char *bytes, size_t nBytes,
+                                char *buf, size_t bufSize) {
+    size_t offset = 0;
+    size_t i = 0;
+    for (; i + 1 < nBytes; i += 2) {
+        offset += epicsSnprintf(buf + offset, bufSize - offset,
+                                (offset == 0) ? "%02X%02X" : " %02X%02X",
+                                bytes[i], bytes[i + 1]);
+        if (offset >= bufSize) {
+            break;
+        }
+    }
+    if (i < nBytes && offset < bufSize) {
+        epicsSnprintf(buf + offset, bufSize - offset,
+                      (offset == 0) ? "%02X" : " %02X", bytes[i]);
+    }
+}
 
 void threadReadEventLoop(void *drvPtr) {
     psdPortDriver *drv = (psdPortDriver *)drvPtr;
     drv->readEventLoop();
+}
+
+void threadRegisterDumpLoop(void *drvPtr) {
+    psdPortDriver *drv = (psdPortDriver *)drvPtr;
+    drv->registerDumpLoop();
 }
 
 psdPortDriver::psdPortDriver(const char *portName, const char *address,
@@ -49,9 +90,9 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
         portName,                                                               /* portName */
         1,                                                                      /* maxAddr */
         asynInt32Mask | asynInt64Mask | asynFloat64Mask
-            | asynInt32ArrayMask | asynInt64ArrayMask | asynDrvUserMask,        /* Interface mask */
+            | asynInt32ArrayMask | asynInt64ArrayMask | asynOctetMask | asynDrvUserMask,        /* Interface mask */
         asynInt32Mask | asynInt64Mask | asynFloat64Mask
-            | asynInt32ArrayMask | asynInt64ArrayMask,                          /* Interrupt mask */
+            | asynInt32ArrayMask | asynInt64ArrayMask | asynOctetMask,                          /* Interrupt mask */
         ASYN_CANBLOCK,                                                          /* asynFlags */
         1,                                                                      /* Autoconnect */
         0,                                                                      /* Default priority */
@@ -95,6 +136,23 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
                 &P_LiveTotalCounts);
     createParam(P_ConnectString, asynParamInt32, &P_Connect);
     createParam(P_ModeString, asynParamInt32, &P_Mode);
+    createParam(P_RegDumpRawString, asynParamOctet, &P_RegDumpRaw);
+    createParam(P_RegDumpLine0String, asynParamOctet, &P_RegDumpLine0);
+    createParam(P_RegDumpLine1String, asynParamOctet, &P_RegDumpLine1);
+    createParam(P_RegDumpLine2String, asynParamOctet, &P_RegDumpLine2);
+    createParam(P_RegDumpLine3String, asynParamOctet, &P_RegDumpLine3);
+    createParam(P_RegDumpLine4String, asynParamOctet, &P_RegDumpLine4);
+    createParam(P_RegDumpLine5String, asynParamOctet, &P_RegDumpLine5);
+    createParam(P_RegDumpLine6String, asynParamOctet, &P_RegDumpLine6);
+
+    setStringParam(P_RegDumpRaw, "<disconnected>");
+    setStringParam(P_RegDumpLine0, "<disconnected>");
+    setStringParam(P_RegDumpLine1, "");
+    setStringParam(P_RegDumpLine2, "");
+    setStringParam(P_RegDumpLine3, "");
+    setStringParam(P_RegDumpLine4, "");
+    setStringParam(P_RegDumpLine5, "");
+    setStringParam(P_RegDumpLine6, "");
 
     // Create the thread that runs the read event loop
     asynStatus status =
@@ -104,6 +162,18 @@ psdPortDriver::psdPortDriver(const char *portName, const char *address,
                          (EPICSTHREADFUNC)::threadReadEventLoop, this) == NULL);
     if (status) {
         printf("%s:%s: epicsThreadCreate failure\n", driverName, __func__);
+        return;
+    }
+
+    status =
+        (asynStatus)(epicsThreadCreate(
+                         "PSD_RegisterDumpLoop", epicsThreadPriorityLow,
+                         epicsThreadGetStackSize(epicsThreadStackSmall),
+                         (EPICSTHREADFUNC)::threadRegisterDumpLoop, this) ==
+                     NULL);
+    if (status) {
+        printf("%s:%s: epicsThreadCreate failure for register dump loop\n",
+               driverName, __func__);
         return;
     }
 }
@@ -230,6 +300,32 @@ asynStatus psdPortDriver::readInt32Array(asynUser *pasynUser, epicsInt32 *value,
     return status;
 }
 
+asynStatus psdPortDriver::readOctet(asynUser *pasynUser, char *value,
+                                    size_t maxChars, size_t *nActual,
+                                    int *eomReason) {
+    int function = pasynUser->reason;
+    asynStatus status = (asynStatus)getStringParam(function, maxChars, value);
+    epicsTimeStamp timeStamp;
+
+    getTimeStamp(&timeStamp);
+    pasynUser->timestamp = timeStamp;
+
+    if (nActual != NULL) {
+        *nActual = strlen(value);
+    }
+    if (eomReason != NULL) {
+        *eomReason = ASYN_EOM_END;
+    }
+
+    if (status) {
+        epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
+                      "%s:%s: status=%d, function=%d", driverName, __func__,
+                      status, function);
+    }
+
+    return status;
+}
+
 /** Connects driver to device */
 asynStatus psdPortDriver::connect(asynUser *pasynUser) {
     int addr;
@@ -338,6 +434,7 @@ asynStatus psdPortDriver::connect(asynUser *pasynUser) {
         return asynError;
     }
 
+    this->refreshRegisterDumpLocked();
     setIntegerParam(P_Connect, 1);
     pasynManager->exceptionConnect(pasynUser);
     return asynSuccess;
@@ -349,6 +446,7 @@ asynStatus psdPortDriver::disconnect(asynUser *pasynUser) {
     }
 
     this->freeNetworking();
+    this->setRegisterDumpDisconnectedLocked();
     setIntegerParam(P_Connect, 0);
     return asynPortDriver::disconnect(pasynUser);
 }
@@ -621,6 +719,87 @@ int psdPortDriver::setHardLLD(int lldValue){
 
     return 0;
 
+}
+
+void psdPortDriver::setRegisterDumpDisconnectedLocked() {
+    setStringParam(P_RegDumpRaw, "<disconnected>");
+    setStringParam(P_RegDumpLine0, "<disconnected>");
+    setStringParam(P_RegDumpLine1, "");
+    setStringParam(P_RegDumpLine2, "");
+    setStringParam(P_RegDumpLine3, "");
+    setStringParam(P_RegDumpLine4, "");
+    setStringParam(P_RegDumpLine5, "");
+    setStringParam(P_RegDumpLine6, "");
+}
+
+void psdPortDriver::refreshRegisterDumpLocked() {
+    unsigned char dump[kRegisterDumpBytes] = {0};
+    char rawBuf[256] = {0};
+    char lineBuf[kRegisterDumpGroupCount][48] = {{0}};
+
+    int status = this->sendNEUNET(kRegisterDumpStart, NULL, kRegisterDumpBytes,
+                                  (char *)dump, sizeof(dump));
+    if (status < 0) {
+        setStringParam(P_RegDumpRaw, "<read error>");
+        setStringParam(P_RegDumpLine0, "<read error>");
+        setStringParam(P_RegDumpLine1, "");
+        setStringParam(P_RegDumpLine2, "");
+        setStringParam(P_RegDumpLine3, "");
+        setStringParam(P_RegDumpLine4, "");
+        setStringParam(P_RegDumpLine5, "");
+        setStringParam(P_RegDumpLine6, "");
+        return;
+    }
+
+    size_t rawOffset = 0;
+    for (uint32_t address = kRegisterDumpStart; address <= kRegisterDumpEnd;
+         address += 8) {
+        rawOffset += epicsSnprintf(rawBuf + rawOffset, sizeof(rawBuf) - rawOffset,
+                                   (rawOffset == 0) ? "%04X:" : "\n%04X:",
+                                   address);
+        size_t bytesThisLine =
+            std::min<size_t>(8, kRegisterDumpEnd - address + 1);
+        for (size_t i = 0; i < bytesThisLine && rawOffset < sizeof(rawBuf); i++) {
+            rawOffset += epicsSnprintf(rawBuf + rawOffset,
+                                       sizeof(rawBuf) - rawOffset, " %02X",
+                                       dump[(address - kRegisterDumpStart) + i]);
+        }
+    }
+
+    for (size_t group = 0; group < kRegisterDumpGroupCount; group++) {
+        const size_t offset = kRegisterDumpGroups[group].address - kRegisterDumpStart;
+        formatRegisterBytes(dump + offset, kRegisterDumpGroups[group].size,
+                            lineBuf[group], sizeof(lineBuf[group]));
+    }
+
+    setStringParam(P_RegDumpRaw, rawBuf);
+    setStringParam(P_RegDumpLine0, lineBuf[0]);
+    setStringParam(P_RegDumpLine1, lineBuf[1]);
+    setStringParam(P_RegDumpLine2, lineBuf[2]);
+    setStringParam(P_RegDumpLine3, lineBuf[3]);
+    setStringParam(P_RegDumpLine4, lineBuf[4]);
+    setStringParam(P_RegDumpLine5, lineBuf[5]);
+    setStringParam(P_RegDumpLine6, lineBuf[6]);
+}
+
+void psdPortDriver::registerDumpLoop() {
+    constexpr double pollPeriod = 1.0;
+
+    while (true) {
+        this->lock();
+
+        int acquiring = 0;
+        getIntegerParam(P_Acquire, &acquiring);
+        if (this->isConnected && !acquiring) {
+            this->refreshRegisterDumpLocked();
+        } else if (!this->isConnected) {
+            this->setRegisterDumpDisconnectedLocked();
+        }
+        callParamCallbacks();
+
+        this->unlock();
+        epicsThreadSleep(pollPeriod);
+    }
 }
 
 /** Resets NEUNET registers */

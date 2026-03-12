@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>354</width>
-    <height>466</height>
+    <height>514</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1103,7 +1103,87 @@ background-color: rgb(115, 223, 255)</string>
        </layout>
       </item>
      </layout>
-    </widget>
+   </widget>
+  </item>
+   <item>
+    <layout class="QHBoxLayout" name="registerDisplayLayout">
+     <item>
+      <widget class="PyDMRelatedDisplayButton" name="parsedRegisterButton">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>34</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string/>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">PyDMRelatedDisplayButton{
+  color: rgb(0, 0, 0);
+  background-color: rgb(115, 223, 255);
+  }</string>
+       </property>
+       <property name="text">
+        <string>Parsed Registers</string>
+       </property>
+       <property name="filenames" stdset="0">
+        <stringlist>
+         <string>neunet_register_readout.py</string>
+        </stringlist>
+       </property>
+       <property name="titles" stdset="0">
+        <stringlist>
+         <string>NeuNET Register Readout</string>
+        </stringlist>
+       </property>
+       <property name="showIcon" stdset="0">
+        <bool>false</bool>
+       </property>
+       <property name="openInNewWindow" stdset="0">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="PyDMRelatedDisplayButton" name="rawRegisterButton">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>34</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string/>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">PyDMRelatedDisplayButton{
+  color: rgb(0, 0, 0);
+  background-color: rgb(115, 223, 255);
+  }</string>
+       </property>
+       <property name="text">
+        <string>Raw Dump</string>
+       </property>
+       <property name="filenames" stdset="0">
+        <stringlist>
+         <string>neunet_register_raw.ui</string>
+        </stringlist>
+       </property>
+       <property name="titles" stdset="0">
+        <stringlist>
+         <string>NeuNET Raw Register Dump</string>
+        </stringlist>
+       </property>
+       <property name="showIcon" stdset="0">
+        <bool>false</bool>
+       </property>
+       <property name="openInNewWindow" stdset="0">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
@@ -1133,6 +1213,11 @@ background-color: rgb(115, 223, 255)</string>
    <class>PyDMPushButton</class>
    <extends>QPushButton</extends>
    <header>pydm.widgets.pushbutton</header>
+  </customwidget>
+  <customwidget>
+   <class>PyDMRelatedDisplayButton</class>
+   <extends>QPushButton</extends>
+   <header>pydm.widgets.related_display_button</header>
   </customwidget>
  </customwidgets>
  <resources/>
