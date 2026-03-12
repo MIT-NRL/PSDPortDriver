@@ -84,6 +84,7 @@ private:
                    char *readBuf, size_t readBufSize);
     int setup();
     int teardown();
+    int setTransferMode(bool oneWay);
     void flushNEUNET();
     int setHardLLD(int lldValue);
 

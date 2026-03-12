@@ -153,12 +153,11 @@ asynStatus psdPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
             status = this->disconnect(pasynUser);
         }
     } else if (function == P_HardLLD){
-        // Check if acquiring and wait until complete
         if (acquiring) {
-            this->unlock();
-            // wait if acquiring
-            // epicsThreadSleep(0.1);
-            this->lock();
+            epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
+                          "%s:%s: refusing to change %s while acquisition is active",
+                          driverName, __func__, paramName);
+            return asynError;
         }
         statusInt = this->setHardLLD(value);
         if (statusInt < 0) {
@@ -171,8 +170,10 @@ asynStatus psdPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
          * act on them here */
     }
 
-    // Set the parameter in the parameter library.
-    status = (asynStatus)setIntegerParam(function, value);
+    // Keep the hardware readback value for the discriminator threshold.
+    if (function != P_HardLLD) {
+        status = (asynStatus)setIntegerParam(function, value);
+    }
 
     /* Do callbacks so higher layers see any changes */
     status = (asynStatus)callParamCallbacks();
@@ -420,11 +421,14 @@ int psdPortDriver::sendNEUNET(uint32_t address, const char *data,
     header.dataLength = dataLength;
     header.address = address;
 
-    int msgLength = sizeof(header) + dataLength;
+    int payloadLength = (data != NULL) ? dataLength : 0;
+    int msgLength = sizeof(header) + payloadLength;
     char *msg = (char *)malloc(msgLength);
 
     memcpy(msg, &header, sizeof(header));
-    memcpy(msg + sizeof(header), data, dataLength);
+    if (payloadLength > 0) {
+        memcpy(msg + sizeof(header), data, payloadLength);
+    }
 
     // Send Message
     int sentBytes = send(this->udpSocket, msg, msgLength, 0);
@@ -515,9 +519,7 @@ int psdPortDriver::setup() {
     //                            sizeof(discriminatorThreshold), NULL, 0);
 
     // Switch to oneway mode (disable handshake)
-    const unsigned char oneWayMode[] = {0x80};
-    status |= this->sendNEUNET(NEUNET_ADDR_MODE, (char *)oneWayMode,
-                               sizeof(oneWayMode), NULL, 0);
+    status |= this->setTransferMode(true);
 
     if (status < 0) {
         return -1;
@@ -526,41 +528,96 @@ int psdPortDriver::setup() {
     return 0;
 }
 
+int psdPortDriver::setTransferMode(bool oneWay) {
+    const unsigned char modeValue[] = {
+        static_cast<unsigned char>(oneWay ? 0x80 : 0x00)};
+    return this->sendNEUNET(NEUNET_ADDR_MODE, (const char *)modeValue,
+                            sizeof(modeValue), NULL, 0);
+}
+
 int psdPortDriver::setHardLLD(int lldValue){
 
     int status = 0;
+    const double registerSettleDelay = 0.1;
+    unsigned char discriminatorThreshold[8] = {0};
+    unsigned char readbackThreshold[8] = {0};
+    const unsigned char eventModeOff[] = {0x80};
+    const unsigned char eventModeOn[] = {0x00};
+    char writeHex[3 * sizeof(discriminatorThreshold)] = {0};
+    char readHex[3 * sizeof(readbackThreshold)] = {0};
 
-    // disable event mode
-    const unsigned char eventModeOff[] = {0x00,0x80};
-    status |= this->sendNEUNET(0x186, (char *)eventModeOff,
-                               sizeof(eventModeOff), NULL, 0);
+    if (lldValue < 0 || lldValue > 0x0FFF) {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+                  "%s::%s error: LLD value %d is outside the 12-bit range\n",
+                  driverName, __func__, lldValue);
+        return -1;
+    }
 
-    // Set discriminator threshold (LLD, TMH, THL)
-    // convert lldValue to 2 bytes
-    unsigned char lldValueBytes[2];
-    lldValueBytes[0] = (lldValue & 0xFF00) >> 8;
-    lldValueBytes[1] = lldValue & 0x00FF;
-    const unsigned char discriminatorThreshold[] = {0x03,0xe8,0xff,0xff,0xff,0xff,0xff,0xff};
-    status |= this->sendNEUNET(NEUNET_ADDR_DISCRIM, (char *)discriminatorThreshold,
+    // Read the full discriminator block first so we can preserve the current
+    // TMH/TML values while updating only the LLD bytes at 0x198-0x199.
+    status = this->sendNEUNET(NEUNET_ADDR_DISCRIM, NULL,
+                              sizeof(discriminatorThreshold),
+                              (char *)discriminatorThreshold,
+                              sizeof(discriminatorThreshold));
+    if (status < 0) {
+        return -1;
+    }
+
+    discriminatorThreshold[0] = (lldValue >> 8) & 0xFF;
+    discriminatorThreshold[1] = lldValue & 0xFF;
+
+    for (size_t i = 0; i < sizeof(discriminatorThreshold); i++) {
+        sprintf(&writeHex[3 * i], "%02X ", discriminatorThreshold[i]);
+    }
+    writeHex[3 * sizeof(discriminatorThreshold) - 1] = 0;
+    asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER,
+              "%s::%s write LLD=%d discrim=(%s)\n", driverName, __func__,
+              lldValue, writeHex);
+
+    // Manufacturer guidance: stop event mode by setting RR(7)=1 at 0x187,
+    // then write the full 8-byte discriminator block in one command.
+    status = this->sendNEUNET(0x187, (const char *)eventModeOff,
+                              sizeof(eventModeOff), NULL, 0);
+    if (status < 0) {
+        return -1;
+    }
+    epicsThreadSleep(registerSettleDelay);
+
+    status |= this->sendNEUNET(NEUNET_ADDR_DISCRIM,
+                               (char *)discriminatorThreshold,
                                sizeof(discriminatorThreshold), NULL, 0);
-
-    // enable event mode
-    const unsigned char eventModeOn[] = {0x00,0x00};
-    status |= this->sendNEUNET(0x186, (char *)eventModeOn,
-                               sizeof(eventModeOn), NULL, 0);
-
-    // readback discriminator threshold
-    char readBuf[2];
-    status |= this->sendNEUNET(NEUNET_ADDR_DISCRIM, NULL, 0, readBuf, sizeof(readBuf));
-    // convert readBuf to int
-    printf("readBuf[0]: %d\n", readBuf[0]);
-    int readValue = (readBuf[0] << 8) | readBuf[1];
-    printf("LLD Value: %d\n", readValue);
-    setIntegerParam(P_HardLLD, readValue);
 
     if (status < 0) {
         return -1;
     }
+    epicsThreadSleep(registerSettleDelay);
+
+    status = this->sendNEUNET(0x187, (const char *)eventModeOn,
+                              sizeof(eventModeOn), NULL, 0);
+    if (status < 0) {
+        return -1;
+    }
+    epicsThreadSleep(registerSettleDelay);
+
+    // Read back the full block after event mode is restored.
+    status = this->sendNEUNET(NEUNET_ADDR_DISCRIM, NULL,
+                              sizeof(readbackThreshold),
+                              (char *)readbackThreshold,
+                              sizeof(readbackThreshold));
+    if (status < 0) {
+        return -1;
+    }
+
+    for (size_t i = 0; i < sizeof(readbackThreshold); i++) {
+        sprintf(&readHex[3 * i], "%02X ", readbackThreshold[i]);
+    }
+    readHex[3 * sizeof(readbackThreshold) - 1] = 0;
+
+    int readValue = (readbackThreshold[0] << 8) | readbackThreshold[1];
+    asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER,
+              "%s::%s readback LLD=%d discrim=(%s)\n", driverName, __func__,
+              readValue, readHex);
+    setIntegerParam(P_HardLLD, readValue);
 
     return 0;
 
@@ -569,9 +626,7 @@ int psdPortDriver::setHardLLD(int lldValue){
 /** Resets NEUNET registers */
 int psdPortDriver::teardown() {
     // Switch back to handshake mode
-    const char handshakeMode[] = {0x00};
-    this->sendNEUNET(NEUNET_ADDR_MODE, handshakeMode, sizeof(handshakeMode),
-                     NULL, 0);
+    this->setTransferMode(false);
 
     return 0;
 }
@@ -582,10 +637,32 @@ int psdPortDriver::teardown() {
  */
 
 void psdPortDriver::flushNEUNET() {
+    if (!this->isConnected) {
+        return;
+    }
+
     // Tell NEUNET to flush FIFO
-    const char flushFIFO[] = {0x40};
-    this->sendNEUNET(NEUNET_ADDR_STATUS_LO, flushFIFO, sizeof(flushFIFO), NULL,
-                     0);
+    unsigned char statusByte = 0;
+    int status = this->sendNEUNET(NEUNET_ADDR_STATUS_LO, NULL, 1,
+                                  (char *)&statusByte, sizeof(statusByte));
+    unsigned char flushFIFO = statusByte | 0x40;
+    unsigned char statusRestore = statusByte & static_cast<unsigned char>(~0x40);
+
+    if (status < 0) {
+        // Fall back to the legacy write if status readback is unavailable.
+        flushFIFO = 0x40;
+        statusRestore = 0x00;
+    }
+
+    status = this->sendNEUNET(NEUNET_ADDR_STATUS_LO, (char *)&flushFIFO,
+                              sizeof(flushFIFO), NULL, 0);
+    epicsThreadSleep(0.01);
+
+    if (status >= 0) {
+        this->sendNEUNET(NEUNET_ADDR_STATUS_LO, (char *)&statusRestore,
+                         sizeof(statusRestore), NULL, 0);
+        epicsThreadSleep(0.01);
+    }
 
     // Flush the TCP read buffer
     const int bufSize = 1024;
@@ -600,8 +677,21 @@ void psdPortDriver::flushNEUNET() {
     fcntl(this->tcpSocket, F_SETFL, flags | O_NONBLOCK);
 #endif
 
-    // Read all available data
-    while (recv(this->tcpSocket, buf, bufSize, 0) > 0) {
+    // Drain for a bounded number of polls. In one-way mode new packets can
+    // keep arriving, so waiting for a perfectly idle socket can hang startup.
+    for (int poll = 0; poll < 5; poll++) {
+        bool drainedData = false;
+        while (recv(this->tcpSocket, buf, bufSize, 0) > 0) {
+            drainedData = true;
+        }
+
+        if (!drainedData) {
+            break;
+        }
+
+        if (poll < 4) {
+            epicsThreadSleep(0.01);
+        }
     }
 
     // Set socket back to blocking mode
@@ -669,6 +759,13 @@ void psdPortDriver::readEventLoop() {
             state = AcquisitionState::starting;
             startTries = 0;
 
+            // Snapshot parameters for this run before publishing any callbacks.
+            getDoubleParam(P_AcquireTime, &acquireTime);
+            getIntegerParam(P_NumBins, &numBins);
+            getIntegerParam(P_Mode, &mode);
+            getIntegerParam(P_SoftLLD, &softLLD);
+            getIntegerParam(P_SoftHLD, &softHLD);
+
             // Clear out old counts
             std::fill(totalCounts_.begin(), totalCounts_.end(), 0);
             std::fill(counts_.begin(), counts_.end(), 0);
@@ -680,13 +777,6 @@ void psdPortDriver::readEventLoop() {
             doCallbacksInt32Array(this->counts_.data(), countsSize,
                                   P_LiveCounts, 0);
             callParamCallbacks();
-
-            // Read parameters
-            getDoubleParam(P_AcquireTime, &acquireTime);
-            getIntegerParam(P_NumBins, &numBins);
-            getIntegerParam(P_Mode, &mode);
-            getIntegerParam(P_SoftLLD, &softLLD);
-            getIntegerParam(P_SoftHLD, &softHLD);
         } break;
 
         case AcquisitionState::starting:
@@ -810,17 +900,27 @@ void psdPortDriver::readEventLoop() {
                 double startTimeDelta = currentTime - startTime;
                 std::cout << "Acquisition started at " << startTime << "   delta = " << startTimeDelta << "   " << startTries <<  std::endl;
                 
-                // Ignore all stale data if buffer clear doesn't work
-                if (startTimeDelta < 0.1) {
+                constexpr double freshStartDelta = 0.1;
+                constexpr double reconnectStartDelta = 5.0;
+                constexpr int maxFlushStartRetries = 3;
+
+                // Ignore all stale data if buffer clear doesn't work.
+                // If the apparent start time is many seconds old, drop the
+                // TCP connection quickly instead of spending minutes draining
+                // the old stream one instrument-time event at a time.
+                if (startTimeDelta < freshStartDelta) {
                     state = AcquisitionState::acquiring;
-                } else if (startTries < 100) {
+                } else if (startTimeDelta > reconnectStartDelta ||
+                           startTries >= maxFlushStartRetries) {
+                    this->disconnect(this->pasynUserSelf);
+                    this->connect(this->pasynUserSelf);
+                    this->flushNEUNET();
+                    this->realignTCP();
+                    startTries = 0;
+                } else {
                     this->flushNEUNET();
                     this->realignTCP();
                     startTries++;
-                } else {
-                    this->disconnect(this->pasynUserSelf);
-                    this->connect(this->pasynUserSelf);
-                    startTries = 0;
                 }
             } else if (acquireTime > 0) {
                 double timeDelta = time - startTime;
@@ -915,11 +1015,10 @@ int psdPortDriver::readEvent(char *buf) {
  * This should fix issues in case of missing data.
  */
 void psdPortDriver::realignTCP() {
-    char buf[32 - 1];
-    int bytesRead =
-        recv(this->tcpSocket, buf, sizeof(buf), MSG_WAITALL + MSG_PEEK);
+    char buf[32];
+    int bytesRead = recv(this->tcpSocket, buf, sizeof(buf), MSG_PEEK);
 
-    if (bytesRead != sizeof(buf)) {
+    if (bytesRead < 8) {
         return;
     }
 
@@ -927,7 +1026,7 @@ void psdPortDriver::realignTCP() {
         int validHeaders = 0;
         int invalidHeaders = 0;
 
-        for (int i = offset; i < (int)sizeof(buf); i += 8) {
+        for (int i = offset; i < bytesRead; i += 8) {
             switch ((TCPEventType)buf[i]) {
             case TCPEventType::neutronData12:
             case TCPEventType::neutronData14:
@@ -943,10 +1042,13 @@ void psdPortDriver::realignTCP() {
             }
         }
 
-        if (validHeaders && !invalidHeaders) {
+        int checkedHeaders = validHeaders + invalidHeaders;
+        if (checkedHeaders >= 2 && !invalidHeaders) {
             // We found an offset, so now we can advance the TCP data buffer
             // by the ammount corresponding to the offset we found.
-            recv(this->tcpSocket, buf, offset, MSG_WAITALL);
+            if (offset > 0) {
+                recv(this->tcpSocket, buf, offset, MSG_WAITALL);
+            }
             return;
         }
     }
