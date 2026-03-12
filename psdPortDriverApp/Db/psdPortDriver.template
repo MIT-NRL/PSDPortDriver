@@ -123,14 +123,13 @@ record(longin, "$(P)$(R)SoftLLD_RBV") {
 }
 
 record(longout, "$(P)$(R)HardLLD") {
-  field(PINI, "YES")
   field(DTYP, "asynInt32")
   field(OUT, "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))Hard_LLD")
   field(VAL, "0")
   field(LOPR, "0")
   field(DRVL, "0")
-  #field(HOPR, "4096")
-  #field(DRVH, "4096")
+  field(HOPR, "4095")
+  field(DRVH, "4095")
 }
 
 record(longin, "$(P)$(R)HardLLD_RBV") {

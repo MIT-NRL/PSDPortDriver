@@ -1,5 +1,6 @@
 # This file is used by autosave to determine what PVs to save
 
+$(P)$(R)Connect
 $(P)$(R)AcquireTime
 $(P)$(R)NBins
 $(P)$(R)Mode
